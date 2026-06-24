@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://csnk4uaainqjt"]
+
+[ext_resource type="PackedScene" uid="uid://c3fnc6qvwf6i0" path="res://player.tscn" id="1_kfggg"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_kfggg"]
+sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+
+[sub_resource type="Sky" id="Sky_rc7fl"]
+sky_material = SubResource("ProceduralSkyMaterial_kfggg")
+
+[sub_resource type="Environment" id="Environment_q5803"]
+background_mode = 2
+sky = SubResource("Sky_rc7fl")
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kfggg"]
+albedo_color = Color(0.17683944, 0.099591784, 1.2032688e-08, 1)
+
+[node name="Proto" type="Node3D" unique_id=1645511567]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=516106937]
+environment = SubResource("Environment_q5803")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=593074596]
+transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
+shadow_enabled = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="." unique_id=107786363]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+use_collision = true
+size = Vector3(100, 1, 100)
+material = SubResource("StandardMaterial3D_kfggg")
+
+[node name="Player" parent="." unique_id=1520849458 instance=ExtResource("1_kfggg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6215515, 1.9073486e-06, 1.0142593)
+walk_speed = 7.0
+sprint_speed = 12.0
+acceleration = 20.0
+friction = 25.0
+jump_velocity = 6.0

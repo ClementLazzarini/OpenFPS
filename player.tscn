@@ -1,0 +1,74 @@
+[gd_scene format=3 uid="uid://c3fnc6qvwf6i0"]
+
+[ext_resource type="Script" uid="uid://clnroscgrk382" path="res://player.gd" id="1_4flbx"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_onrkg"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_i3pqv"]
+
+[node name="Player" type="CharacterBody3D" unique_id=1520849458]
+script = ExtResource("1_4flbx")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=2143360819]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_onrkg")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1209540350]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CapsuleMesh_i3pqv")
+
+[node name="Head" type="Node3D" parent="." unique_id=171574997]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+
+[node name="Camera3D" type="Camera3D" parent="Head" unique_id=582863792]
+
+[node name="WeaponRayCast" type="RayCast3D" parent="Head/Camera3D" unique_id=1468577592]
+target_position = Vector3(0, 0, -50)
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1152552074]
+
+[node name="Control" type="Control" parent="HUD" unique_id=1428754673]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Crosshair" type="ColorRect" parent="HUD/Control" unique_id=688440941]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -1.0
+offset_top = -1.0
+offset_right = 1.0
+offset_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HealthBar" type="ProgressBar" parent="HUD/Control" unique_id=92096004]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -27.0
+offset_right = 4.0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="AmmoLabel" type="Label" parent="HUD/Control" unique_id=703802153]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -40.0
+offset_top = -23.0
+grow_horizontal = 0
+grow_vertical = 0
