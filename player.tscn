@@ -1,6 +1,8 @@
 [gd_scene format=3 uid="uid://c3fnc6qvwf6i0"]
 
 [ext_resource type="Script" uid="uid://clnroscgrk382" path="res://player.gd" id="1_4flbx"]
+[ext_resource type="AudioStream" uid="uid://ch40hj4hfy538" path="res://9mmshoot.wav" id="2_i3pqv"]
+[ext_resource type="PackedScene" uid="uid://dt0y7lc4g5www" path="res://9_mm.tscn" id="2_onrkg"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_onrkg"]
 
@@ -22,8 +24,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 
 [node name="Camera3D" type="Camera3D" parent="Head" unique_id=582863792]
 
+[node name="ShootSound" type="AudioStreamPlayer" parent="Head/Camera3D" unique_id=2058029259]
+stream = ExtResource("2_i3pqv")
+
 [node name="WeaponRayCast" type="RayCast3D" parent="Head/Camera3D" unique_id=1468577592]
 target_position = Vector3(0, 0, -50)
+
+[node name="Weapon" parent="Head/Camera3D" unique_id=566221120 instance=ExtResource("2_onrkg")]
+transform = Transform3D(0.04984048, 0, 0.0039908094, 0, 0.05, 0, -0.0039908094, 0, 0.04984048, 0.6497926, -0.57015073, -1.1124429)
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1152552074]
 

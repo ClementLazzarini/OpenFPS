@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://dt0y7lc4g5www"]
+
+[ext_resource type="PackedScene" uid="uid://d1384qh5gcutx" path="res://models/weapons/9mm/scene.gltf" id="1_je1y0"]
+
+[node name="9mm" unique_id=566221120 instance=ExtResource("1_je1y0")]
+
+[node name="RootNode" parent="Sketchfab_model/9802e292a2ae42f48e80a378550dae7e_fbx" parent_id_path=PackedInt32Array(1645876536) index="0" unique_id=1144183001]
+transform = Transform3D(0.1, 0, 0, 0, 0.08660254, -0.05, 0, 0.05, 0.08660254, 0, 0, 0)
+
+[node name="Clip_low" parent="Sketchfab_model/9802e292a2ae42f48e80a378550dae7e_fbx/RootNode" index="6" unique_id=717594231]
+visible = false
+
+[node name="Plane001" parent="Sketchfab_model/9802e292a2ae42f48e80a378550dae7e_fbx/RootNode" index="7" unique_id=246177769]
+visible = false
