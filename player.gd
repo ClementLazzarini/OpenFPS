@@ -7,7 +7,7 @@ extends CharacterBody3D
 @export var acceleration: float = 12.0
 @export var friction: float = 15.0
 @export var air_control: float = 3.0
-@export var jump_velocity: float = 4.5
+@export var jump_velocity: float = 6
 @export var gravity: float = 9.8
 
 @export_category("Caméra & Vue")
@@ -18,6 +18,18 @@ extends CharacterBody3D
 @export var normal_fov: float = 80.0
 @export var sprint_fov: float = 90.0
 @export var fov_transition_speed: float = 8.0
+
+@export_category("Glissade (Slide)")
+@export var slide_initial_speed: float = 18.0 # Le "boost" au moment où on lance la glissade
+@export var slide_friction: float = 3.0 # Ralentissement pendant la glissade
+@export var slide_duration: float = 0.8 # Temps max de la glissade
+@export var crouch_head_y: float = 0.8 # Hauteur de la caméra accroupi/en glissade
+
+# Variables d'état interne
+var is_sliding: bool = false
+var slide_timer: float = 0.0
+var slide_dir: Vector3 = Vector3.ZERO
+var stand_head_y: float # Pour mémoriser la hauteur normale de la tête
 
 @export_category("Head Bobbing")
 @export var bob_frequency: float = 2.0
@@ -48,6 +60,7 @@ func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	weapon_default_pos = weapon.position
 	weapon_default_rot = weapon.rotation
+	stand_head_y = head.position.y
 
 func _unhandled_input(event: InputEvent) -> void:
 	# --- GESTION DE LA SOURIS (ROTATION CAMÉRA) ---
@@ -77,68 +90,97 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 
+	# --- GESTION DE LA HAUTEUR (ACCROUPISSEMENT & GLISSADE) ---
+	# Baisse la caméra doucement si on maintient crouch OU si on est en pleine glissade
+	var target_head_y = crouch_head_y if (Input.is_action_pressed("crouch") or is_sliding) else stand_head_y
+	head.position.y = lerp(head.position.y, target_head_y, delta * 10.0)
+
 	# --- SAUT ---
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
+		is_sliding = false # Le saut annule (cut) immédiatement la glissade
 
 	# --- SPRINT ---
-	if Input.is_action_pressed("sprint") and is_on_floor():
+	# On ne peut sprinter que si on ne glisse pas
+	if Input.is_action_pressed("sprint") and is_on_floor() and not is_sliding:
 		current_speed = sprint_speed
 	else:
 		current_speed = walk_speed
+
 	# --- SYSTÈME DE TIR (9mm Semi-Auto) ---
 	if Input.is_action_just_pressed("shoot"):
 		_shoot()
 
-	# --- DÉPLACEMENTS (GAME FEEL) ---
+	# --- VECTEURS DE DIRECTION ---
 	# 1. Récupérer le vecteur directionnel basé sur les touches pressées
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
-	
+
 	# 2. Convertir ce vecteur 2D en une direction 3D en fonction d'où regarde le joueur
 	var direction := (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 
-	# 3. Appliquer la vitesse avec interpolation (lerp) pour l'accélération et la friction
-	if is_on_floor():
-		if direction != Vector3.ZERO:
-			# En mouvement : Accélération progressive (très rapide mais pas instantanée)
-			velocity.x = lerp(velocity.x, direction.x * current_speed, delta * acceleration)
-			velocity.z = lerp(velocity.z, direction.z * current_speed, delta * acceleration)
-		else:
-			# À l'arrêt : Friction (glissement léger avant l'arrêt complet)
-			velocity.x = lerp(velocity.x, 0.0, delta * friction)
-			velocity.z = lerp(velocity.z, 0.0, delta * friction)
+	# --- DÉCLENCHEMENT DE LA GLISSADE ---
+	# Conditions : Appui sur crouch + Vitesse de sprint + Au sol + En mouvement + Pas déjà en glissade
+	if Input.is_action_just_pressed("crouch") and current_speed == sprint_speed and is_on_floor() and direction != Vector3.ZERO and not is_sliding:
+		is_sliding = true
+		slide_timer = slide_duration
+		slide_dir = direction # On verrouille la direction de l'élan initial
+
+		# Le gros boost de vitesse percutant (façon MW2019)
+		velocity.x = slide_dir.x * slide_initial_speed
+		velocity.z = slide_dir.z * slide_initial_speed
+
+	# --- DÉPLACEMENTS (GAME FEEL) ---
+	if is_sliding:
+		slide_timer -= delta
+
+		# Ralentissement progressif avec la friction de glissade
+		velocity.x = lerp(velocity.x, 0.0, delta * slide_friction)
+		velocity.z = lerp(velocity.z, 0.0, delta * slide_friction)
+
+		# CONDITIONS D'ANNULATION (CUT) : 
+		# Temps écoulé, touche relâchée, ou vitesse trop faible
+		if slide_timer <= 0 or not Input.is_action_pressed("crouch") or velocity.length() < walk_speed:
+			is_sliding = false
 	else:
-		# En l'air : Le joueur garde son élan, avec un contrôle directionnel fortement réduit
-		if direction != Vector3.ZERO:
-			velocity.x = lerp(velocity.x, direction.x * current_speed, delta * air_control)
-			velocity.z = lerp(velocity.z, direction.z * current_speed, delta * air_control)
+		# Déplacements normaux
+		if is_on_floor():
+			if direction != Vector3.ZERO:
+				# En mouvement : Accélération progressive
+				velocity.x = lerp(velocity.x, direction.x * current_speed, delta * acceleration)
+				velocity.z = lerp(velocity.z, direction.z * current_speed, delta * acceleration)
+			else:
+				# À l'arrêt : Friction
+				velocity.x = lerp(velocity.x, 0.0, delta * friction)
+				velocity.z = lerp(velocity.z, 0.0, delta * friction)
+		else:
+			# En l'air : Élan conservé avec contrôle réduit
+			if direction != Vector3.ZERO:
+				velocity.x = lerp(velocity.x, direction.x * current_speed, delta * air_control)
+				velocity.z = lerp(velocity.z, direction.z * current_speed, delta * air_control)
 
 	# --- FOV DYNAMIQUE (SENSATION DE VITESSE) ---
-	# Si on sprinte ET qu'on bouge, on cible le FOV de sprint, sinon on revient au FOV normal
 	var target_fov: float
-	if Input.is_action_pressed("sprint") and direction != Vector3.ZERO and is_on_floor():
+	# J'ai ajouté 'or is_sliding' ici pour que le FOV reste large pendant la glissade !
+	if (Input.is_action_pressed("sprint") or is_sliding) and direction != Vector3.ZERO and is_on_floor():
 		target_fov = sprint_fov
 	else:
 		target_fov = normal_fov
 		
-	# Interpolation douce de la caméra vers le FOV ciblé
 	camera.fov = lerp(camera.fov, target_fov, delta * fov_transition_speed)
-	
+
 	# --- HEAD BOBBING ---
-	# Si le joueur touche le sol et qu'il bouge significativement
-	if is_on_floor() and velocity.length() > 0.5:
-		# On ajoute le temps écoulé, multiplié par la vitesse (pour accélérer le bobbing en sprint)
+	# Désactivé pendant la glissade pour un effet "sur des rails"
+	if is_on_floor() and velocity.length() > 0.5 and not is_sliding:
 		t_bob += delta * velocity.length() * float(is_on_floor())
-		# On applique la position calculée à la caméra
 		camera.position = _headbob(t_bob)
 	else:
-		# Si on est à l'arrêt ou en l'air, on ramène la caméra à sa position centrale (0, 0, 0)
 		camera.position = camera.position.lerp(Vector3.ZERO, delta * 5.0)
+
 	# --- RÉCUPÉRATION DU RECUL ---
-	# Ramène doucement l'arme vers sa position et rotation d'origine
 	weapon.position = weapon.position.lerp(weapon_default_pos, delta * recoil_recovery_speed)
 	weapon.rotation = weapon.rotation.lerp(weapon_default_rot, delta * recoil_recovery_speed)
 
+	# --- EXÉCUTION MOTEUR PHYSIQUE ---
 	move_and_slide()
 
 func _headbob(time: float) -> Vector3:

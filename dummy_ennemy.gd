@@ -8,7 +8,7 @@ func take_damage(amount: int) -> void:
 	print("Aïe ! Le mannequin perd ", amount, " PV. Reste : ", health)
 	
 	# Petit effet visuel : le mannequin saute légèrement quand il est touché
-	apply_central_impulse(Vector3.UP * 5.0)
+	apply_central_impulse(Vector3.UP * 2.0)
 	
 	if health <= 0:
 		die()
