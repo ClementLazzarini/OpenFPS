@@ -13,7 +13,14 @@ config_version=5
 config/name="FPSProject"
 run/main_scene="uid://csnk4uaainqjt"
 config/features=PackedStringArray("4.6", "Forward Plus")
+run/max_fps=144
 config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1200
+window/size/viewport_height=800
+window/vsync/vsync_mode=0
 
 [input]
 

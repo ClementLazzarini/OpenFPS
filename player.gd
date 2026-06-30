@@ -7,8 +7,8 @@ extends CharacterBody3D
 @export var acceleration: float = 12.0
 @export var friction: float = 15.0
 @export var air_control: float = 3.0
-@export var jump_velocity: float = 6
-@export var gravity: float = 9.8
+@export var jump_velocity: float = 10
+@export var gravity: float = 24
 
 @export_category("Caméra & Vue")
 @export var mouse_sensitivity: float = 0.002

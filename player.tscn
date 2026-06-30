@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://clnroscgrk382" path="res://player.gd" id="1_4flbx"]
 [ext_resource type="AudioStream" uid="uid://ch40hj4hfy538" path="res://9mmshoot.wav" id="2_i3pqv"]
 [ext_resource type="PackedScene" uid="uid://dt0y7lc4g5www" path="res://9_mm.tscn" id="2_onrkg"]
+[ext_resource type="Script" uid="uid://bg8rmwpwyjpxe" path="res://fps_label.gd" id="4_hqtel"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_onrkg"]
 
@@ -80,3 +81,14 @@ offset_left = -40.0
 offset_top = -23.0
 grow_horizontal = 0
 grow_vertical = 0
+
+[node name="FPS_Label" type="Label" parent="HUD/Control" unique_id=938206517]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -20.0
+offset_right = 20.0
+offset_bottom = 23.0
+grow_horizontal = 2
+script = ExtResource("4_hqtel")
