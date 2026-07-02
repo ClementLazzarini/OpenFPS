@@ -23,3 +23,7 @@ mesh = SubResource("CapsuleMesh_iifgy")
 
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=491944257]
 debug_enabled = true
+
+[node name="AimRayCast" type="RayCast3D" parent="." unique_id=1753562320]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3389592, 0)
+enabled = false

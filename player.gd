@@ -29,7 +29,8 @@ extends CharacterBody3D
 var is_sliding: bool = false
 var slide_timer: float = 0.0
 var slide_dir: Vector3 = Vector3.ZERO
-var stand_head_y: float # Pour mémoriser la hauteur normale de la tête
+var stand_head_y: float 
+var health: int = 100
 
 @export_category("Head Bobbing")
 @export var bob_frequency: float = 2.0
@@ -209,3 +210,9 @@ func _shoot() -> void:
 
 		if target.has_method("take_damage"):
 			target.take_damage(20)
+
+func take_damage(amount: int) -> void:
+	health -= amount
+	print("Le joueur est touché ! PV restants : ", health)
+	if health <= 0:
+		print("Game Over pour le joueur !")
