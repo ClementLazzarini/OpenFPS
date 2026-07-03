@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://cc0dnlyqq3k7k"]
 
 [ext_resource type="Script" uid="uid://d25lssbhsxcg6" path="res://enemy.gd" id="1_7k104"]
+[ext_resource type="PackedScene" uid="uid://dt0y7lc4g5www" path="res://9_mm.tscn" id="2_4gyqm"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_4gyqm"]
 
@@ -27,3 +28,6 @@ debug_enabled = true
 [node name="AimRayCast" type="RayCast3D" parent="." unique_id=1753562320]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3389592, 0)
 enabled = false
+
+[node name="Weapon" parent="." unique_id=566221120 instance=ExtResource("2_4gyqm")]
+transform = Transform3D(0.04984048, 0, 0.0039908094, 0, 0.05, 0, -0.0039908094, 0, 0.04984048, 0.6497926, 0.9707519, -0.9726327)

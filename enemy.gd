@@ -1,8 +1,14 @@
 extends CharacterBody3D
 
 # --- MACHINE À ÉTATS ---
-enum State { SEARCH, CHASE, ATTACK }
-var current_state: State = State.SEARCH
+enum State { PATROL, SEARCH, CHASE, ATTACK }
+var current_state: State = State.PATROL
+
+@export_category("Patrouille & IA")
+@export var patrol_radius: float = 15.0
+@export var wait_time: float = 1.0 
+
+var wait_timer: float = 0.0
 
 @export_category("Statistiques")
 @export var speed: float = 4.0
@@ -55,17 +61,24 @@ func _physics_process(delta: float) -> void:
 
 	# 2. Logique de décision (Changement d'état)
 	if has_los:
-		nav_agent.target_position = player.global_position # Met à jour la dernière position connue
+		# Le joueur est en vue !
+		nav_agent.target_position = player.global_position
 		if distance_to_player <= attack_range:
 			current_state = State.ATTACK
 		else:
 			current_state = State.CHASE
 	else:
-		current_state = State.SEARCH
+		# Le joueur n'est PLUS en vue.
+		if current_state == State.CHASE or current_state == State.ATTACK:
+			# On vient de le perdre : on bascule en recherche vers sa dernière position
+			current_state = State.SEARCH
+			wait_timer = wait_time # Prépare le timer pour quand on arrivera sur place
 
 	# 3. Exécution de l'action selon l'état
 	match current_state:
-		State.SEARCH, State.CHASE:
+		State.PATROL, State.SEARCH:
+			_handle_patrol_and_search(delta)
+		State.CHASE:
 			_move_towards_target(delta)
 		State.ATTACK:
 			_handle_attack(delta)
@@ -73,22 +86,60 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 # --- MOUVEMENTS ---
+# --- DÉPLACEMENTS (TRAQUE) ---
 func _move_towards_target(delta: float) -> void:
 	if nav_agent.is_navigation_finished():
-		# Arrêt fluide s'il a atteint sa destination
-		velocity.x = lerp(velocity.x, 0.0, delta * acceleration)
-		velocity.z = lerp(velocity.z, 0.0, delta * acceleration)
-		return
-
+		return # S'il a atteint la cible, il s'arrête
+		
 	var next_path_position = nav_agent.get_next_path_position()
 	var direction = (next_path_position - global_position)
 	direction.y = 0
 	direction = direction.normalized()
-	
+
+	# On sprinte presque en mode CHASE
 	velocity.x = lerp(velocity.x, direction.x * speed, delta * acceleration)
 	velocity.z = lerp(velocity.z, direction.z * speed, delta * acceleration)
-	
 	_smooth_look_at(direction, delta)
+
+# --- PATROUILLE & RECHERCHE ---
+func _handle_patrol_and_search(delta: float) -> void:
+	if nav_agent.is_navigation_finished():
+		# L'ennemi est arrivé à son point (point de patrouille ou dernière position du joueur)
+		# 1. Il freine
+		velocity.x = lerp(velocity.x, 0.0, delta * acceleration)
+		velocity.z = lerp(velocity.z, 0.0, delta * acceleration)
+
+		# 2. Il "regarde autour de lui" en attendant
+		wait_timer -= delta
+		if wait_timer <= 0.0:
+			# 3. Fin de l'attente : on choisit un nouveau point et on repart en patrouille
+			_set_random_patrol_point()
+			current_state = State.PATROL
+		return
+		
+	# S'il n'est pas encore arrivé, il marche calmement vers le point
+	var next_path_position = nav_agent.get_next_path_position()
+	var direction = (next_path_position - global_position)
+	direction.y = 0
+	direction = direction.normalized()
+
+	# Vitesse légèrement réduite en patrouille pour plus de réalisme
+	velocity.x = lerp(velocity.x, direction.x * (speed * 0.6), delta * acceleration)
+	velocity.z = lerp(velocity.z, direction.z * (speed * 0.6), delta * acceleration)
+	_smooth_look_at(direction, delta)
+
+func _set_random_patrol_point() -> void:
+	wait_timer = wait_time # On réarme le timer pour le prochain arrêt
+
+	# Crée une direction aléatoire autour de l'ennemi
+	var random_dir = Vector3(randf_range(-1.0, 1.0), 0, randf_range(-1.0, 1.0)).normalized()
+	# Pousse ce point à une distance aléatoire
+	var random_pos = global_position + (random_dir * randf_range(5.0, patrol_radius))
+
+	# MAGIE GODOT 4 : On s'assure que le point aléatoire atterrit bien sur la surface navigable !
+	var safe_point = NavigationServer3D.map_get_closest_point(nav_agent.get_navigation_map(), random_pos)
+
+	nav_agent.target_position = safe_point
 
 # --- COMBAT ---
 func _handle_attack(delta: float) -> void:
