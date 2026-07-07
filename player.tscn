@@ -4,6 +4,7 @@
 [ext_resource type="AudioStream" uid="uid://ch40hj4hfy538" path="res://9mmshoot.wav" id="2_i3pqv"]
 [ext_resource type="PackedScene" uid="uid://dt0y7lc4g5www" path="res://9_mm.tscn" id="2_onrkg"]
 [ext_resource type="Script" uid="uid://bg8rmwpwyjpxe" path="res://fps_label.gd" id="4_hqtel"]
+[ext_resource type="AudioStream" uid="uid://dd7a4nh0370dc" path="res://Reload.wav" id="4_sweqy"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_onrkg"]
 
@@ -33,6 +34,9 @@ target_position = Vector3(0, 0, -50)
 
 [node name="Weapon" parent="Head/Camera3D" unique_id=566221120 instance=ExtResource("2_onrkg")]
 transform = Transform3D(0.04984048, 0, 0.0039908094, 0, 0.05, 0, -0.0039908094, 0, 0.04984048, 0.6497926, -0.57015073, -1.1124429)
+
+[node name="ReloadSound" type="AudioStreamPlayer" parent="Head/Camera3D" unique_id=1496572424]
+stream = ExtResource("4_sweqy")
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1152552074]
 
@@ -66,7 +70,7 @@ anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_top = -27.0
-offset_right = 4.0
+offset_right = 191.0
 grow_vertical = 0
 mouse_filter = 2
 

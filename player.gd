@@ -41,9 +41,17 @@ var t_bob: float = 0.0 # chronomètre pour calculer le balancement
 @export var recoil_rotation_x: float = 0.1 # L'arme se lève
 @export var recoil_position_z: float = 0.1 # L'arme recule vers le joueur
 @export var recoil_recovery_speed: float = 10.0 # Vitesse de retour à la normale
+@export var max_ammo: int = 15 # Taille du chargeur du 9mm
+@export var reload_time: float = 1.5 # Durée du rechargement en secondes
+
+# Variables d'état des munitions
+var current_ammo: int = max_ammo
+var is_reloading: bool = false
+var reload_timer: float = 0.0
 
 @onready var weapon: Node3D = $Head/Camera3D/Weapon
 @onready var shoot_sound: AudioStreamPlayer = $Head/Camera3D/ShootSound 
+@onready var reload_sound: AudioStreamPlayer = $Head/Camera3D/ReloadSound
 
 # Position et rotation initiales de l'arme (pour la ramener à sa place)
 var weapon_default_pos: Vector3
@@ -54,6 +62,10 @@ var weapon_default_rot: Vector3
 @onready var camera: Camera3D = $Head/Camera3D
 @onready var weapon_raycast: RayCast3D = $Head/Camera3D/WeaponRayCast
 
+# --- RÉFÉRENCES HUD ---
+@onready var health_bar: ProgressBar = $HUD/Control/HealthBar
+@onready var ammo_label: Label = $HUD/Control/AmmoLabel
+
 # --- VARIABLES D'ÉTAT ---
 var current_speed: float = walk_speed
 
@@ -62,6 +74,9 @@ func _ready() -> void:
 	weapon_default_pos = weapon.position
 	weapon_default_rot = weapon.rotation
 	stand_head_y = head.position.y
+	health_bar.max_value = 100
+	health_bar.value = health
+	_update_ammo_display()
 
 func _unhandled_input(event: InputEvent) -> void:
 	# --- GESTION DE LA SOURIS (ROTATION CAMÉRA) ---
@@ -107,10 +122,27 @@ func _physics_process(delta: float) -> void:
 		current_speed = sprint_speed
 	else:
 		current_speed = walk_speed
+	
+# --- GESTION DU RECHARGEMENT ---
+	if is_reloading:
+		reload_timer -= delta
+		if reload_timer <= 0.0:
+			current_ammo = max_ammo
+			is_reloading = false
+			_update_ammo_display()
+			print("Arme rechargée !")
+
+	# Lancement manuel du rechargement
+	if Input.is_action_just_pressed("reload") and current_ammo < max_ammo and not is_reloading:
+		_start_reload()
 
 	# --- SYSTÈME DE TIR (9mm Semi-Auto) ---
-	if Input.is_action_just_pressed("shoot"):
-		_shoot()
+	if Input.is_action_just_pressed("shoot") and not is_reloading:
+		if current_ammo > 0:
+			_shoot()
+		else:
+			# Essayer de tirer à vide déclenche un rechargement automatique
+			_start_reload()
 
 	# --- VECTEURS DE DIRECTION ---
 	# 1. Récupérer le vecteur directionnel basé sur les touches pressées
@@ -189,30 +221,47 @@ func _headbob(time: float) -> Vector3:
 		pos.y = sin(time * bob_frequency) * bob_amplitude
 		pos.x = cos(time * bob_frequency / 2.0) * bob_amplitude
 		return pos
-		
+
 func _shoot() -> void:
-	# 1. Jouer le son
+	# 1. Consommer la balle et mettre à jour l'UI
+	current_ammo -= 1
+	_update_ammo_display()
+
+	# 2. Jouer le son
 	if shoot_sound.stream:
 		shoot_sound.play()
 		
-	# 2. Appliquer le recul visuel (on ajoute un à-coup brutal)
+	# 3. Appliquer le recul visuel
 	weapon.position.z += recoil_position_z
 	weapon.rotation.x += recoil_rotation_x
 
-	# 3. Logique Hitscan
+	# 4. Logique Hitscan
 	weapon_raycast.force_raycast_update()
-
 	if weapon_raycast.is_colliding():
 		var target = weapon_raycast.get_collider()
-		var hit_point = weapon_raycast.get_collision_point()
-
-		print("Tir réussi ! Cible touchée : ", target.name)
-
 		if target.has_method("take_damage"):
 			target.take_damage(20)
 
+func _start_reload() -> void:
+	is_reloading = true
+	reload_timer = reload_time
+	print("Rechargement en cours...")
+
+	if reload_sound.stream:
+		reload_sound.play()
+		
+	# Petite animation visuelle basique : on baisse l'arme
+	weapon.rotation.x = deg_to_rad(-45)
+
+func _update_ammo_display() -> void:
+	ammo_label.text = str(current_ammo) + " / " + str(max_ammo)
+
 func take_damage(amount: int) -> void:
 	health -= amount
+	health_bar.value = health # Met à jour la jauge à l'écran
 	print("Le joueur est touché ! PV restants : ", health)
+
 	if health <= 0:
 		print("Game Over pour le joueur !")
+		# Optionnel pour l'instant : Relancer la scène
+		# get_tree().reload_current_scene()
