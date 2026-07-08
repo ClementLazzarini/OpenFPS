@@ -239,6 +239,12 @@ func _shoot() -> void:
 	weapon_raycast.force_raycast_update()
 	if weapon_raycast.is_colliding():
 		var target = weapon_raycast.get_collider()
+		var hit_point = weapon_raycast.get_collision_point()
+		var hit_normal = weapon_raycast.get_collision_normal()
+
+		# --- APPEL DE L'EFFET ---
+		_create_impact_particles(hit_point, hit_normal)
+		
 		if target.has_method("take_damage"):
 			target.take_damage(20)
 
@@ -257,11 +263,77 @@ func _update_ammo_display() -> void:
 	ammo_label.text = str(current_ammo) + " / " + str(max_ammo)
 
 func take_damage(amount: int) -> void:
+	if health <= 0: return 
+
 	health -= amount
-	health_bar.value = health # Met à jour la jauge à l'écran
-	print("Le joueur est touché ! PV restants : ", health)
+	health_bar.value = health
 
 	if health <= 0:
-		print("Game Over pour le joueur !")
-		# Optionnel pour l'instant : Relancer la scène
-		# get_tree().reload_current_scene()
+		_respawn()
+
+func _create_impact_particles(hit_point: Vector3, hit_normal: Vector3) -> void:
+	# 1. Création dynamique d'un système de particules 3D
+	var particles := GPUParticles3D.new()
+	get_parent().add_child(particles) # On l'ajoute au niveau, pas au joueur
+
+	# 2. Positionnement et orientation face au mur touché
+	particles.global_position = hit_point
+	if hit_normal != Vector3.UP and hit_normal != Vector3.DOWN:
+		particles.look_at(hit_point + hit_normal, Vector3.UP)
+		
+	# 3. Configuration du Matériau de Process (le comportement des particules)
+	var material := ParticleProcessMaterial.new()
+	material.direction = Vector3.FORWARD
+	material.spread = 45.0 # Dispersion en cône
+	material.initial_velocity_min = 3.0
+	material.initial_velocity_max = 6.0
+	material.gravity = Vector3(0, -9.8, 0) # Elles retombent
+	material.scale_min = 0.05
+	material.scale_max = 0.15
+
+	# 4. Configuration du Mesh (la forme physique de la particule)
+	var box_mesh := BoxMesh.new()
+	var particle_material := StandardMaterial3D.new()
+	particle_material.albedo_color = Color(1.0, 0.8, 0.3) # Couleur étincelle / poussière orange
+	particle_material.emission_enabled = true
+	particle_material.emission = Color(1.0, 0.6, 0.1) # Effet lumineux
+	box_mesh.material = particle_material
+	box_mesh.size = Vector3(0.1, 0.1, 0.1)
+
+	# 5. Application des paramètres au nœud
+	particles.process_material = material
+	particles.draw_pass_1 = box_mesh
+	particles.one_shot = true
+	particles.explosiveness = 1.0
+	particles.amount = 8
+
+	# 6. Lancement et auto-destruction après 1 seconde
+	particles.emitting = true
+	await get_tree().create_timer(1.0).timeout
+	particles.queue_free()
+
+
+func _respawn() -> void:
+	print("Le joueur est mort ! Recherche d'un point de réapparition...")
+
+	# 1. Reset des statistiques du joueur
+	health = 100
+	health_bar.value = health
+	current_ammo = max_ammo
+	_update_ammo_display()
+	is_sliding = false
+
+	# 2. Recherche d'un point de spawn aléatoire sur Shipment
+	var spawn_points = get_tree().get_nodes_in_group("player_spawns")
+
+	if spawn_points.size() > 0:
+		var random_spawn = spawn_points.pick_random() as Marker3D
+		# Téléportation instantanée du joueur au point choisi
+		global_position = random_spawn.global_position
+		# Optionnel : aligner la rotation du joueur sur celle du spawn
+		global_rotation.y = random_spawn.global_rotation.y
+		print("Réapparition réussie au point : ", random_spawn.name)
+	else:
+		# Sécurité si tu as oublié de configurer le groupe sur ta carte
+		global_position = Vector3(0, 2, 0)
+		print("ATTENTION : Aucun point dans le groupe 'player_spawns'. Retour au centre de la carte.")

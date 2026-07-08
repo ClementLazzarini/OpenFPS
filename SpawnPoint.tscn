@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://5omdwimoh0gn"]
+
+[ext_resource type="Script" uid="uid://brlavxodvr2nq" path="res://spawn_point.gd" id="1_m6g4i"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_omdsd"]
+albedo_color = Color(0, 1, 0, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_w14jh"]
+material = SubResource("StandardMaterial3D_omdsd")
+
+[node name="SpawnPoint" type="Marker3D" unique_id=399249818]
+script = ExtResource("1_m6g4i")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1195201556]
+transform = Transform3D(0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 0, 0, 0)
+mesh = SubResource("SphereMesh_w14jh")

@@ -27,6 +27,8 @@ var wait_timer: float = 0.0
 @onready var nav_agent: NavigationAgent3D = $NavigationAgent3D
 @onready var aim_raycast: RayCast3D = $AimRayCast
 
+@onready var animation_player: AnimationPlayer = $Soldier/AnimationPlayer
+
 var player: Node3D = null
 var is_ready_to_navigate: bool = false
 var fire_timer: float = 0.0
@@ -34,7 +36,9 @@ var fire_timer: float = 0.0
 func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player")
 	nav_agent.path_desired_distance = 0.5
-	nav_agent.target_desired_distance = 1.0 # Il n'a plus besoin d'aller au corps-à-corps
+	nav_agent.target_desired_distance = 1.0
+	if animation_player.has_animation("mixamo_com"):
+		animation_player.play("mixamo_com")
 	call_deferred("setup_navigation")
 
 func setup_navigation() -> void:

@@ -2,25 +2,27 @@
 
 [ext_resource type="Script" uid="uid://d25lssbhsxcg6" path="res://enemy.gd" id="1_7k104"]
 [ext_resource type="PackedScene" uid="uid://dt0y7lc4g5www" path="res://9_mm.tscn" id="2_4gyqm"]
+[ext_resource type="PackedScene" uid="uid://407b5hm666lt" path="res://soldier.tscn" id="2_qi2p4"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_4gyqm"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qi2p4"]
-albedo_color = Color(1, 0, 0, 1)
-
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_iifgy"]
-material = SubResource("StandardMaterial3D_qi2p4")
 
 [node name="Enemy" type="CharacterBody3D" unique_id=332428941]
 script = ExtResource("1_7k104")
 
+[node name="Soldier" parent="." unique_id=1912019564 instance=ExtResource("2_qi2p4")]
+transform = Transform3D(-1.2, 0, -1.8119498e-07, 0, 1.2, 0, 1.8119498e-07, 0, -1.2, 0, 0, 0)
+
+[node name="BoneAttachment3D" type="BoneAttachment3D" parent="Soldier/Skeleton3D" parent_id_path=PackedInt32Array(1912019564, 907719010) index="1" unique_id=1787229548]
+transform = Transform3D(-0.025740594, -0.19167739, 0.98112065, 0.9995018, -0.022862583, 0.021756291, 0.018260702, 0.9811916, 0.19217041, -0.095792435, 1.4026203, 0.41275716)
+bone_name = "mixamorig_RightHand"
+bone_idx = 34
+
+[node name="Weapon" parent="Soldier/Skeleton3D/BoneAttachment3D" unique_id=566221120 instance=ExtResource("2_4gyqm")]
+transform = Transform3D(0.0005177816, 0.020822955, -0.00040522666, 0.003027716, -0.00047630272, -0.020606648, -0.02060564, 0.00045325598, -0.0030380446, -0.05351758, 0.2350046, -0.057605594)
+
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=889641026]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("CapsuleShape3D_4gyqm")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1366762780]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
-mesh = SubResource("CapsuleMesh_iifgy")
 
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=491944257]
 debug_enabled = true
@@ -29,5 +31,4 @@ debug_enabled = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3389592, 0)
 enabled = false
 
-[node name="Weapon" parent="." unique_id=566221120 instance=ExtResource("2_4gyqm")]
-transform = Transform3D(0.04984048, 0, 0.0039908094, 0, 0.05, 0, -0.0039908094, 0, 0.04984048, 0.6497926, 0.9707519, -0.9726327)
+[editable path="Soldier"]

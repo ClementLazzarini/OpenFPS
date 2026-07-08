@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://dnbuwxwojn8ld" path="res://models/maps/Container_Red_Close.tscn" id="2_a0orm"]
 [ext_resource type="PackedScene" uid="uid://c3fnc6qvwf6i0" path="res://player.tscn" id="3_bmbx6"]
 [ext_resource type="PackedScene" uid="uid://cc0dnlyqq3k7k" path="res://enemy.tscn" id="4_bmbx6"]
+[ext_resource type="PackedScene" uid="uid://5omdwimoh0gn" path="res://SpawnPoint.tscn" id="5_dfkbg"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_a0orm"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -335,3 +336,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.45317, -0.024248123, 14.1
 
 [node name="Enemy2" parent="." unique_id=2097164029 instance=ExtResource("4_bmbx6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.24094, -0.024248123, 12.07173)
+
+[node name="SpawnPoints" type="Node3D" parent="." unique_id=1450146167]
+
+[node name="SpawnPoint" parent="SpawnPoints" unique_id=399249818 instance=ExtResource("5_dfkbg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.7402525, 0.13454466, -15.24768)
+
+[node name="SpawnPoint2" parent="SpawnPoints" unique_id=865024889 instance=ExtResource("5_dfkbg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.3618593, 0.13454513, 16.644396)
+
+[node name="SpawnPoint3" parent="SpawnPoints" unique_id=2129096101 instance=ExtResource("5_dfkbg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.255362, 3.0586848, -3.836399)
