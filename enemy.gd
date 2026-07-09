@@ -1,4 +1,5 @@
 extends CharacterBody3D
+signal killed(victim_node, killer_node)
 
 # --- MACHINE À ÉTATS ---
 enum State { PATROL, SEARCH, CHASE, ATTACK }
@@ -29,6 +30,7 @@ var wait_timer: float = 0.0
 @onready var animation_player: AnimationPlayer = $Soldier/AnimationPlayer
 
 @export_category("Système d'Équipe")
+@onready var team_indicator: Label3D = $TeamIndicator
 @export var team_id: int = 0 # 0 = Mêlée générale, 1 = Équipe Joueur, 2 = Équipe Ennemi
 
 var current_target: CharacterBody3D = null
@@ -48,7 +50,9 @@ func _ready() -> void:
 	
 	if animation_player.has_animation("mixamo_com"):
 		animation_player.play("mixamo_com")
-		
+	
+	_setup_team_indicator()
+	
 	call_deferred("setup_navigation")
 
 func setup_navigation() -> void:
@@ -183,7 +187,7 @@ func _shoot() -> void:
 	fire_timer = fire_rate
 	if current_target and is_instance_valid(current_target):
 		if current_target.has_method("take_damage"):
-			current_target.take_damage(damage)
+			current_target.take_damage(damage, self)
 
 # --- VISION TACTIQUE ---
 func _has_line_of_sight(target: Node3D) -> bool:
@@ -231,12 +235,11 @@ func _find_closest_valid_target() -> CharacterBody3D:
 	return closest_target
 
 # --- SYSTEME DE DEGATS ---
-func take_damage(amount: int) -> void:
+func take_damage(amount: int, attacker: Node3D = null) -> void:
 	if health <= 0: return 
-	
+
 	health -= amount
-	print(name, " touché ! PV restants : ", health)
-	
+
 	if current_state == State.PATROL or current_state == State.SEARCH:
 		current_state = State.SEARCH
 		current_target = _find_closest_valid_target()
@@ -245,6 +248,8 @@ func take_damage(amount: int) -> void:
 			wait_timer = wait_time
 
 	if health <= 0:
+		# On crie au MatchManager qu'on vient de mourir et par qui
+		emit_signal("killed", self, attacker)
 		_respawn()
 
 # --- SYSTEME DE RESPAWN ---
@@ -283,3 +288,21 @@ func _smooth_look_at(direction: Vector3, delta: float) -> void:
 	if direction != Vector3.ZERO:
 		var target_angle = atan2(-direction.x, -direction.z)
 		rotation.y = lerp_angle(rotation.y, target_angle, delta * rotation_speed)
+
+func _setup_team_indicator() -> void:
+	var player_node = get_tree().get_first_node_in_group("player")
+	if not player_node:
+		team_indicator.hide()
+		return
+
+	# Si on est en Mêlée Générale (0), tout le monde est une cible (Rouge)
+	if team_id == 0:
+		team_indicator.modulate = Color(1.0, 0.0, 0.0) # Rouge vif
+		
+	# S'il y a des équipes, on compare notre ID avec celui du joueur
+	elif player_node.get("team_id") != null:
+		if team_id == player_node.team_id:
+			team_indicator.modulate = Color(0.0, 1.0, 0.0) # Vert vif (Allié)
+		else:
+			team_indicator.modulate = Color(1.0, 0.0, 0.0) # Rouge vif (Ennemi)
+			

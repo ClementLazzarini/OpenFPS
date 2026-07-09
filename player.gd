@@ -1,4 +1,5 @@
 extends CharacterBody3D
+signal killed(victim_node, killer_node)
 
 # --- PARAMÈTRES EXPORTÉS ---
 @export_category("Déplacements")
@@ -250,7 +251,7 @@ func _shoot() -> void:
 		_create_impact_particles(hit_point, hit_normal, is_enemy)
 		
 		if target.has_method("take_damage"):
-			target.take_damage(20)
+			target.take_damage(20, self)
 
 func _start_reload() -> void:
 	is_reloading = true
@@ -266,13 +267,14 @@ func _start_reload() -> void:
 func _update_ammo_display() -> void:
 	ammo_label.text = str(current_ammo) + " / " + str(max_ammo)
 
-func take_damage(amount: int) -> void:
+func take_damage(amount: int, attacker: Node3D = null) -> void:
 	if health <= 0: return 
 
 	health -= amount
 	health_bar.value = health
 
 	if health <= 0:
+		emit_signal("killed", self, attacker)
 		_respawn()
 
 func _create_impact_particles(hit_point: Vector3, hit_normal: Vector3, is_enemy: bool = false) -> void:

@@ -12,7 +12,7 @@ script = ExtResource("1_7k104")
 [node name="Soldier" parent="." unique_id=1912019564 instance=ExtResource("2_qi2p4")]
 transform = Transform3D(-1.2, 0, -1.8119498e-07, 0, 1.2, 0, 1.8119498e-07, 0, -1.2, 0, 0, 0)
 
-[node name="BoneAttachment3D" type="BoneAttachment3D" parent="Soldier/Skeleton3D" parent_id_path=PackedInt32Array(1912019564, 907719010) index="1" unique_id=1787229548]
+[node name="BoneAttachment3D" type="BoneAttachment3D" parent="Soldier/Skeleton3D" parent_id_path=PackedInt32Array(1912019564, 1983869810) index="1" unique_id=1787229548]
 transform = Transform3D(-0.025740594, -0.19167739, 0.98112065, 0.9995018, -0.022862583, 0.021756291, 0.018260702, 0.9811916, 0.19217041, -0.095792435, 1.4026203, 0.41275716)
 bone_name = "mixamorig_RightHand"
 bone_idx = 34
@@ -30,5 +30,10 @@ debug_enabled = true
 [node name="AimRayCast" type="RayCast3D" parent="." unique_id=1753562320]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3389592, 0)
 enabled = false
+
+[node name="TeamIndicator" type="Label3D" parent="." unique_id=1741783272]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
+billboard = 1
+text = "▼"
 
 [editable path="Soldier"]

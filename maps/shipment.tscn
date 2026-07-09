@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://c3fnc6qvwf6i0" path="res://player.tscn" id="3_bmbx6"]
 [ext_resource type="PackedScene" uid="uid://cc0dnlyqq3k7k" path="res://enemy.tscn" id="4_bmbx6"]
 [ext_resource type="PackedScene" uid="uid://5omdwimoh0gn" path="res://SpawnPoint.tscn" id="5_dfkbg"]
+[ext_resource type="PackedScene" uid="uid://bym3e0yky2sab" path="res://match_manager.tscn" id="6_24kdc"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_a0orm"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -331,12 +332,6 @@ transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 23.8
 [node name="Container_Red_Close80" parent="NavigationRegion3D/Borders" unique_id=845471632 instance=ExtResource("2_a0orm")]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 23.80223, 8.582523, 25.963621)
 
-[node name="Enemy" parent="." unique_id=332428941 instance=ExtResource("4_bmbx6")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.45317, -0.024248123, 14.163183)
-
-[node name="Enemy2" parent="." unique_id=2097164029 instance=ExtResource("4_bmbx6")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.429077, -0.024248123, -10.403875)
-
 [node name="SpawnPoints" type="Node3D" parent="." unique_id=1450146167]
 
 [node name="SpawnPoint" parent="SpawnPoints" unique_id=399249818 instance=ExtResource("5_dfkbg")]
@@ -359,3 +354,7 @@ type = 1
 [node name="SpawnPoint3" parent="." unique_id=137254678 instance=ExtResource("5_dfkbg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.843513, 0.13454513, 12.538928)
 type = 1
+
+[node name="MatchManager" parent="." unique_id=1181911137 instance=ExtResource("6_24kdc")]
+current_mode = 1
+enemy_scene = ExtResource("4_bmbx6")
