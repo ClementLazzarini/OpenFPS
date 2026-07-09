@@ -31,6 +31,7 @@ var slide_timer: float = 0.0
 var slide_dir: Vector3 = Vector3.ZERO
 var stand_head_y: float 
 var health: int = 100
+var team_id: int = 0
 
 @export_category("Head Bobbing")
 @export var bob_frequency: float = 2.0
@@ -71,6 +72,8 @@ var current_speed: float = walk_speed
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	add_to_group("player")
+	add_to_group("combatants")
 	weapon_default_pos = weapon.position
 	weapon_default_rot = weapon.rotation
 	stand_head_y = head.position.y
@@ -241,9 +244,10 @@ func _shoot() -> void:
 		var target = weapon_raycast.get_collider()
 		var hit_point = weapon_raycast.get_collision_point()
 		var hit_normal = weapon_raycast.get_collision_normal()
-
+		# --- DÉTECTION DE LA CIBLE ---
+		var is_enemy: bool = target.is_in_group("enemy")
 		# --- APPEL DE L'EFFET ---
-		_create_impact_particles(hit_point, hit_normal)
+		_create_impact_particles(hit_point, hit_normal, is_enemy)
 		
 		if target.has_method("take_damage"):
 			target.take_damage(20)
@@ -271,43 +275,46 @@ func take_damage(amount: int) -> void:
 	if health <= 0:
 		_respawn()
 
-func _create_impact_particles(hit_point: Vector3, hit_normal: Vector3) -> void:
-	# 1. Création dynamique d'un système de particules 3D
+func _create_impact_particles(hit_point: Vector3, hit_normal: Vector3, is_enemy: bool = false) -> void:
 	var particles := GPUParticles3D.new()
-	get_parent().add_child(particles) # On l'ajoute au niveau, pas au joueur
+	get_parent().add_child(particles)
 
-	# 2. Positionnement et orientation face au mur touché
 	particles.global_position = hit_point
 	if hit_normal != Vector3.UP and hit_normal != Vector3.DOWN:
 		particles.look_at(hit_point + hit_normal, Vector3.UP)
 		
-	# 3. Configuration du Matériau de Process (le comportement des particules)
 	var material := ParticleProcessMaterial.new()
 	material.direction = Vector3.FORWARD
-	material.spread = 45.0 # Dispersion en cône
+	material.spread = 45.0
 	material.initial_velocity_min = 3.0
 	material.initial_velocity_max = 6.0
-	material.gravity = Vector3(0, -9.8, 0) # Elles retombent
+	material.gravity = Vector3(0, -9.8, 0)
 	material.scale_min = 0.05
 	material.scale_max = 0.15
 
-	# 4. Configuration du Mesh (la forme physique de la particule)
 	var box_mesh := BoxMesh.new()
 	var particle_material := StandardMaterial3D.new()
-	particle_material.albedo_color = Color(1.0, 0.8, 0.3) # Couleur étincelle / poussière orange
-	particle_material.emission_enabled = true
-	particle_material.emission = Color(1.0, 0.6, 0.1) # Effet lumineux
+
+	# --- VARIATION DE COULEUR SELON LA CIBLE ---
+	if is_enemy:
+		particle_material.albedo_color = Color(0.7, 0.0, 0.0) # Rouge sombre / Sang
+		particle_material.emission_enabled = true
+		particle_material.emission = Color(0.4, 0.0, 0.0) # Léger éclat rouge
+		particles.amount = 12 # Un poil plus de particules pour marquer l'impact
+	else:
+		particle_material.albedo_color = Color(1.0, 0.8, 0.3) # Orange étincelle classique
+		particle_material.emission_enabled = true
+		particle_material.emission = Color(1.0, 0.6, 0.1)
+		particles.amount = 8
+		
 	box_mesh.material = particle_material
 	box_mesh.size = Vector3(0.1, 0.1, 0.1)
 
-	# 5. Application des paramètres au nœud
 	particles.process_material = material
 	particles.draw_pass_1 = box_mesh
 	particles.one_shot = true
 	particles.explosiveness = 1.0
-	particles.amount = 8
 
-	# 6. Lancement et auto-destruction après 1 seconde
 	particles.emitting = true
 	await get_tree().create_timer(1.0).timeout
 	particles.queue_free()

@@ -19,26 +19,38 @@ var wait_timer: float = 0.0
 
 @export_category("Vision & Combat")
 @export var fov_angle: float = 90.0 # Champ de vision de 90 degrés
-@export var view_distance: float = 30.0 # Distance max pour te voir
+@export var view_distance: float = 30.0 # Distance max pour voir une cible
 @export var attack_range: float = 15.0 # Distance à laquelle il s'arrête pour tirer
 @export var damage: int = 10
 @export var fire_rate: float = 0.8 # Temps entre chaque tir
 
 @onready var nav_agent: NavigationAgent3D = $NavigationAgent3D
 @onready var aim_raycast: RayCast3D = $AimRayCast
-
 @onready var animation_player: AnimationPlayer = $Soldier/AnimationPlayer
 
-var player: Node3D = null
+@export_category("Système d'Équipe")
+@export var team_id: int = 0 # 0 = Mêlée générale, 1 = Équipe Joueur, 2 = Équipe Ennemi
+
+# Ciblage dynamique & Optimisation
+var current_target: CharacterBody3D = null
+var scan_timer: float = 0.0
+var scan_interval: float = 0.2 # Scan de l'arène 5 fois par seconde (économie CPU)
 var is_ready_to_navigate: bool = false
 var fire_timer: float = 0.0
 
 func _ready() -> void:
-	player = get_tree().get_first_node_in_group("player")
+	# --- INSCRIPTION AUTOMATIQUE (Zéro config manuelle dans l'éditeur) ---
+	if not is_in_group("enemy"):
+		add_to_group("enemy")
+	if not is_in_group("combatants"):
+		add_to_group("combatants")
+		
 	nav_agent.path_desired_distance = 0.5
 	nav_agent.target_desired_distance = 1.0
+	
 	if animation_player.has_animation("mixamo_com"):
 		animation_player.play("mixamo_com")
+		
 	call_deferred("setup_navigation")
 
 func setup_navigation() -> void:
@@ -51,34 +63,43 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.y = 0
 
-	if not is_ready_to_navigate or not player or not is_instance_valid(player):
+	if not is_ready_to_navigate:
 		move_and_slide()
 		return
 
-	# Gestion des timers
+	# Gestion du rechargement du tir
 	if fire_timer > 0:
 		fire_timer -= delta
 
-	# 1. Analyse de l'environnement (A-t-il le joueur en visuel ?)
-	var has_los = _has_line_of_sight()
-	var distance_to_player = global_position.distance_to(player.global_position)
+	# 1. RECHERCHE DE CIBLE DYNAMIQUE (Par intervalles pour optimiser)
+	scan_timer -= delta
+	if scan_timer <= 0.0:
+		scan_timer = scan_interval
+		current_target = _find_closest_valid_target()
 
-	# 2. Logique de décision (Changement d'état)
-	if has_los:
-		# Le joueur est en vue !
-		nav_agent.target_position = player.global_position
-		if distance_to_player <= attack_range:
-			current_state = State.ATTACK
+	# 2. LOGIQUE DE DÉCISION (MACHINE À ÉTATS MODULAIRE)
+	if current_target and is_instance_valid(current_target):
+		var has_los = _has_line_of_sight(current_target)
+		var distance_to_target = global_position.distance_to(current_target.global_position)
+
+		if has_los:
+			# La cible est visible : on met à jour le pathfinding
+			nav_agent.target_position = current_target.global_position
+			if distance_to_target <= attack_range:
+				current_state = State.ATTACK
+			else:
+				current_state = State.CHASE
 		else:
-			current_state = State.CHASE
+			# Perte de vue : si on la traquait, on bascule en recherche sur sa dernière position
+			if current_state == State.CHASE or current_state == State.ATTACK:
+				current_state = State.SEARCH
+				wait_timer = wait_time
 	else:
-		# Le joueur n'est PLUS en vue.
+		# Plus aucune cible valide ou en vie sur la map -> Retour à la patrouille tranquille
 		if current_state == State.CHASE or current_state == State.ATTACK:
-			# On vient de le perdre : on bascule en recherche vers sa dernière position
-			current_state = State.SEARCH
-			wait_timer = wait_time # Prépare le timer pour quand on arrivera sur place
+			current_state = State.PATROL
 
-	# 3. Exécution de l'action selon l'état
+	# 3. EXÉCUTION DE L'ACTION SELON L'ÉTAT ACTUEL
 	match current_state:
 		State.PATROL, State.SEARCH:
 			_handle_patrol_and_search(delta)
@@ -90,120 +111,158 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 # --- MOUVEMENTS ---
-# --- DÉPLACEMENTS (TRAQUE) ---
 func _move_towards_target(delta: float) -> void:
-	if nav_agent.is_navigation_finished():
-		return # S'il a atteint la cible, il s'arrête
+	if nav_agent.is_navigation_finished() or not current_target:
+		return
 		
 	var next_path_position = nav_agent.get_next_path_position()
 	var direction = (next_path_position - global_position)
 	direction.y = 0
 	direction = direction.normalized()
 
-	# On sprinte presque en mode CHASE
 	velocity.x = lerp(velocity.x, direction.x * speed, delta * acceleration)
 	velocity.z = lerp(velocity.z, direction.z * speed, delta * acceleration)
 	_smooth_look_at(direction, delta)
 
-# --- PATROUILLE & RECHERCHE ---
 func _handle_patrol_and_search(delta: float) -> void:
 	if nav_agent.is_navigation_finished():
-		# L'ennemi est arrivé à son point (point de patrouille ou dernière position du joueur)
-		# 1. Il freine
 		velocity.x = lerp(velocity.x, 0.0, delta * acceleration)
 		velocity.z = lerp(velocity.z, 0.0, delta * acceleration)
 
-		# 2. Il "regarde autour de lui" en attendant
 		wait_timer -= delta
 		if wait_timer <= 0.0:
-			# 3. Fin de l'attente : on choisit un nouveau point et on repart en patrouille
 			_set_random_patrol_point()
 			current_state = State.PATROL
 		return
 		
-	# S'il n'est pas encore arrivé, il marche calmement vers le point
 	var next_path_position = nav_agent.get_next_path_position()
 	var direction = (next_path_position - global_position)
 	direction.y = 0
 	direction = direction.normalized()
 
-	# Vitesse légèrement réduite en patrouille pour plus de réalisme
 	velocity.x = lerp(velocity.x, direction.x * (speed * 0.6), delta * acceleration)
 	velocity.z = lerp(velocity.z, direction.z * (speed * 0.6), delta * acceleration)
 	_smooth_look_at(direction, delta)
 
 func _set_random_patrol_point() -> void:
-	wait_timer = wait_time # On réarme le timer pour le prochain arrêt
-
-	# Crée une direction aléatoire autour de l'ennemi
+	wait_timer = wait_time
 	var random_dir = Vector3(randf_range(-1.0, 1.0), 0, randf_range(-1.0, 1.0)).normalized()
-	# Pousse ce point à une distance aléatoire
 	var random_pos = global_position + (random_dir * randf_range(5.0, patrol_radius))
-
-	# MAGIE GODOT 4 : On s'assure que le point aléatoire atterrit bien sur la surface navigable !
 	var safe_point = NavigationServer3D.map_get_closest_point(nav_agent.get_navigation_map(), random_pos)
-
 	nav_agent.target_position = safe_point
 
 # --- COMBAT ---
 func _handle_attack(delta: float) -> void:
-	# L'ennemi s'arrête (ou ralentit) pour tirer
+	if not current_target: return
+	
 	velocity.x = lerp(velocity.x, 0.0, delta * (acceleration * 2))
 	velocity.z = lerp(velocity.z, 0.0, delta * (acceleration * 2))
 	
-	# Il tourne la tête directement vers le joueur pour viser
-	var dir_to_player = (player.global_position - global_position)
-	dir_to_player.y = 0
-	_smooth_look_at(dir_to_player.normalized(), delta)
+	var dir_to_target = (current_target.global_position - global_position)
+	dir_to_target.y = 0
+	_smooth_look_at(dir_to_target.normalized(), delta)
 
 	if fire_timer <= 0.0:
 		_shoot()
 
 func _shoot() -> void:
 	fire_timer = fire_rate
-	print(name, " tire sur le joueur !")
-	
-	# Hitscan : Si l'ennemi a la ligne de vue, on considère que son tir touche 
-	# (Tu pourras ajouter une marge d'erreur/dispersion plus tard)
-	if player.has_method("take_damage"):
-		player.take_damage(damage)
+	if current_target and is_instance_valid(current_target):
+		print(name, " tire sur ", current_target.name)
+		if current_target.has_method("take_damage"):
+			current_target.take_damage(damage)
 
-# --- VISION TACTIQUE (Cône de vision + Raycast) ---
-func _has_line_of_sight() -> bool:
-	var dir_to_player = global_position.direction_to(player.global_position)
-	var distance = global_position.distance_to(player.global_position)
+# --- VISION TACTIQUE MULTI-CIBLES ---
+func _has_line_of_sight(target: Node3D) -> bool:
+	if not target or not is_instance_valid(target): return false
 	
-	# 1. Le joueur est-il assez proche ?
+	var dir_to_target = global_position.direction_to(target.global_position)
+	var distance = global_position.distance_to(target.global_position)
+	
 	if distance > view_distance:
 		return false
 		
-	# 2. Le joueur est-il dans l'angle de vision (FOV) devant l'ennemi ?
-	var forward = -global_transform.basis.z # Vecteur "Avant" de l'ennemi
-	# On utilise le produit scalaire (dot) pour vérifier l'angle
-	if forward.dot(dir_to_player) < cos(deg_to_rad(fov_angle / 2.0)):
-		return false # Le joueur est dans son dos
+	var forward = -global_transform.basis.z
+	if forward.dot(dir_to_target) < cos(deg_to_rad(fov_angle / 2.0)):
+		return false
 		
-	# 3. Y a-t-il un mur entre l'ennemi et le joueur ? (Raycast)
-	# On cible le centre/haut du corps du joueur, pas ses pieds
-	var target_pos = player.global_position + Vector3(0, 1.0, 0)
-	# Convertit la position globale en position locale pour le Raycast
+	# Vise le torse de la cible (joueur ou autre bot)
+	var target_pos = target.global_position + Vector3(0, 1.0, 0)
 	aim_raycast.target_position = aim_raycast.to_local(target_pos)
 	aim_raycast.force_raycast_update()
 	
 	if aim_raycast.is_colliding():
 		var collider = aim_raycast.get_collider()
-		if collider.is_in_group("player"):
+		if collider == target:
 			return true
 			
 	return false
 
-# --- OUTILS ---
+# --- SYSTÈME DE SÉLECTION D'ÉQUIPE (FFA / TDM) ---
+func _find_closest_valid_target() -> CharacterBody3D:
+	var all_combatants = get_tree().get_nodes_in_group("combatants")
+	var closest_target: CharacterBody3D = null
+	var min_distance: float = INF
+	
+	for c in all_combatants:
+		# On ignore soi-même ou quelqu'un de déjà mort
+		if c == self or c.health <= 0:
+			continue
+			
+		# --- RÈGLE FILTRE ALLIANCES ---
+		# Si team_id > 0 (Match à mort) : on ignore les coéquipiers
+		# Si team_id == 0 (Mêlée générale) : on n'ignore personne
+		if team_id > 0 and c.team_id == team_id:
+			continue
+			
+		var dist = global_position.distance_to(c.global_position)
+		if dist < min_distance:
+			min_distance = dist
+			closest_target = c
+			
+	return closest_target
+
+# --- SYSTEME DE DEGATS & REACTION RE RETOURNEMENT ---
+func take_damage(amount: int) -> void:
+	if health <= 0: return 
+	
+	health -= amount
+	print(name, " touché ! PV restants : ", health)
+	
+	# --- AGRÉSSIVITÉ ACCRUE (RIQUET DANS LE DOS) ---
+	# Si on se fait tirer dessus en patrouille ou recherche, on force l'analyse
+	if current_state == State.PATROL or current_state == State.SEARCH:
+		current_state = State.SEARCH
+		current_target = _find_closest_valid_target()
+		if current_target:
+			nav_agent.target_position = current_target.global_position
+			wait_timer = wait_time
+
+	if health <= 0:
+		_respawn()
+
+# --- SYSTEME DE RESPAWN STANDARDISÉ ---
+func _respawn() -> void:
+	print(name, " est mort ! Recherche d'un point de réapparition...")
+	
+	health = 100
+	current_state = State.PATROL
+	current_target = null
+	
+	var spawn_points = get_tree().get_nodes_in_group("enemy_spawns")
+	
+	if spawn_points.size() > 0:
+		var random_spawn = spawn_points.pick_random() as Marker3D
+		global_position = random_spawn.global_position
+		global_rotation.y = random_spawn.global_rotation.y
+		print(name, " a réapparu au point : ", random_spawn.name)
+	else:
+		global_position = Vector3(randf_range(-10.0, 10.0), 1.0, randf_range(-10.0, 10.0))
+		print("ATTENTION : Aucun point 'enemy_spawns'. Spawn aléatoire d'urgence.")
+		
+	_set_random_patrol_point()
+
 func _smooth_look_at(direction: Vector3, delta: float) -> void:
 	if direction.length() > 0.1:
 		var target_angle = atan2(-direction.x, -direction.z)
 		rotation.y = lerp_angle(rotation.y, target_angle, delta * rotation_speed)
-
-func take_damage(amount: int) -> void:
-	health -= amount
-	if health <= 0:
-		queue_free()

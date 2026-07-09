@@ -38,7 +38,7 @@ environment = SubResource("Environment_dfkbg")
 transform = Transform3D(-0.031265944, -0.94353527, -0.32979342, -0.8347927, -0.15680602, 0.5277625, -0.54967606, 0.29181013, -0.7827536, -30.443314, 8.336775, 0)
 shadow_enabled = true
 
-[node name="Player" parent="." unique_id=1520849458 groups=["player"] instance=ExtResource("3_bmbx6")]
+[node name="Player" parent="." unique_id=1520849458 instance=ExtResource("3_bmbx6")]
 transform = Transform3D(-0.90941036, 0, 0.4159, 0, 1, 0, -0.4159, 0, -0.90941036, 21.056175, 1.148478, -13.674301)
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="." unique_id=1860883676]
@@ -335,7 +335,7 @@ transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 23.8
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.45317, -0.024248123, 14.163183)
 
 [node name="Enemy2" parent="." unique_id=2097164029 instance=ExtResource("4_bmbx6")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.24094, -0.024248123, 12.07173)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.429077, -0.024248123, -10.403875)
 
 [node name="SpawnPoints" type="Node3D" parent="." unique_id=1450146167]
 
@@ -347,3 +347,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.3618593, 0.13454513, 16.644
 
 [node name="SpawnPoint3" parent="SpawnPoints" unique_id=2129096101 instance=ExtResource("5_dfkbg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.255362, 3.0586848, -3.836399)
+
+[node name="SpawnPoint" parent="." unique_id=908976892 instance=ExtResource("5_dfkbg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.7741585, 0.13454513, -9.095077)
+type = 1
+
+[node name="SpawnPoint2" parent="." unique_id=712498175 instance=ExtResource("5_dfkbg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.127384, 0.13454513, 9.27155)
+type = 1
+
+[node name="SpawnPoint3" parent="." unique_id=137254678 instance=ExtResource("5_dfkbg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.843513, 0.13454513, 12.538928)
+type = 1
