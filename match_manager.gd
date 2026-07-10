@@ -19,6 +19,7 @@ var killfeed_label: Label
 var player: CharacterBody3D = null
 
 func _ready() -> void:
+	await get_tree().process_frame
 	_create_match_ui()
 	
 	# 1. Trouver le joueur présent sur la map
