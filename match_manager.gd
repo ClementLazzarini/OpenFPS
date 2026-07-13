@@ -5,8 +5,8 @@ enum GameMode { FREE_FOR_ALL, TEAM_DEATHMATCH, DOMINATION }
 
 @export_category("Configuration du Match")
 @export var current_mode: GameMode = GameMode.FREE_FOR_ALL
-@export var score_to_win: int = 15
-@export var enemy_scene: PackedScene # <--- GLISSE TON ENEMY.TSCN ICI
+@export var score_to_win: int = 15 # (Tu pourras monter ça à 100 pour la Domination !)
+@export var enemy_scene: PackedScene 
 
 # Dictionnaires pour les scores
 var individual_scores: Dictionary = {}
@@ -17,75 +17,84 @@ var score_label: Label
 var killfeed_label: Label
 
 var player: CharacterBody3D = null
+var domination_timer: float = 0.0 # Chrono pour compter les points des zones
 
 func _ready() -> void:
 	await get_tree().process_frame
 	_create_match_ui()
 	
-	# 1. Trouver le joueur présent sur la map
+	current_mode = Global.selected_mode as GameMode
+	
 	player = get_tree().get_first_node_in_group("player") as CharacterBody3D
 	if not player:
 		print("ATTENTION : Aucun joueur trouvé sur la scène !")
 		return
 		
-	# 2. Configurer la partie et spawner les bots
 	_setup_game_mode()
+	_update_score_display()
+
+# --- BOUCLE POUR LA DOMINATION ---
+func _process(delta: float) -> void:
+	if current_mode == GameMode.DOMINATION:
+		domination_timer += delta
+		if domination_timer >= 1.0: # Toutes les 1 seconde
+			domination_timer = 0.0
+			_tick_domination_scores()
+
+func _tick_domination_scores() -> void:
+	# On récupère toutes les zones de la carte
+	var zones = get_tree().get_nodes_in_group("capture_zones")
 	
-	# 3. Initialiser l'affichage des scores
+	for zone in zones:
+		# Si la zone appartient à l'équipe 1 ou 2, on lui donne +1 point
+		if zone.get("current_owner") != null and zone.current_owner > 0:
+			team_scores[zone.current_owner] += 1
+			
+	# Vérification de la victoire
+	if team_scores[1] >= score_to_win:
+		_end_match("L'ÉQUIPE ALLIÉE REMPORTE LA DOMINATION !")
+	elif team_scores[2] >= score_to_win:
+		_end_match("L'ÉQUIPE ENNEMIE REMPORTE LA DOMINATION !")
+		
 	_update_score_display()
 
 func _setup_game_mode() -> void:
-	# Récupération de TOUS les points de spawn disponibles sur la carte
 	var spawn_points = get_tree().get_nodes_in_group("player_spawns") + get_tree().get_nodes_in_group("enemy_spawns")
 	if spawn_points.is_empty():
 		print("ATTENTION : Aucun SpawnPoint trouvé sur la map !")
 		return
 		
-	# On mélange les points de spawn pour que les positions soient aléatoires à chaque lancement
 	spawn_points.shuffle()
 	
-	# Positionner le joueur sur le premier point de spawn de la liste
 	player.global_position = spawn_points[0].global_position
 	player.global_rotation.y = spawn_points[0].global_rotation.y
 	
 	match current_mode:
 		GameMode.FREE_FOR_ALL:
-			# --- CONFIGURATION MÊLÉE GÉNÉRALE (10 Joueurs : Toi + 9 Bots) ---
 			player.team_id = 0
 			_register_combatant(player)
-			
-			# Faire apparaître 9 Bots (du point index 1 au point index 9)
 			for i in range(1, 10):
 				var spawn_pos = _get_safe_spawn_position(spawn_points, i)
 				_spawn_bot("Bot_" + str(i), 0, spawn_pos)
 				
-		GameMode.TEAM_DEATHMATCH:
-			# --- CONFIGURATION MATCH À MORT (2 Équipes de 5) ---
-			# Équipe 1 : Toi + 4 Bots Alliés
+		# FIX : On regroupe TDM et Domination car les équipes sont les mêmes !
+		GameMode.TEAM_DEATHMATCH, GameMode.DOMINATION:
 			player.team_id = 1
 			player.name = "Joueur (T1)"
 			_register_combatant(player)
 			
-			# 4 Bots Alliés (Team 1)
 			for i in range(1, 5):
 				var spawn_pos = _get_safe_spawn_position(spawn_points, i)
 				_spawn_bot("Allié_" + str(i), 1, spawn_pos)
 				
-			# 5 Bots Ennemis (Team 2)
 			for i in range(5, 10):
 				var spawn_pos = _get_safe_spawn_position(spawn_points, i)
 				_spawn_bot("Ennemi_" + str(i - 4), 2, spawn_pos)
 
 func _get_safe_spawn_position(spawn_points: Array, index: int) -> Transform3D:
-	# On boucle sur la liste des points dispos
 	var point = spawn_points[index % spawn_points.size()]
 	var safe_transform = point.global_transform
-
-	# FIX ANTI-EXPLOSION : 
-	# On décale la position d'apparition de 1.5m sur les côtés et 1m en hauteur
-	# pour que les bots tombent sur le sol sans se coincer dans le sol ni fusionner
 	safe_transform.origin += Vector3(randf_range(-1.5, 1.5), 1.0, randf_range(-1.5, 1.5))
-
 	return safe_transform
 
 func _spawn_bot(bot_name: String, bot_team: int, spawn_transform: Transform3D) -> void:
@@ -96,14 +105,8 @@ func _spawn_bot(bot_name: String, bot_team: int, spawn_transform: Transform3D) -
 	var bot = enemy_scene.instantiate() as CharacterBody3D
 	bot.name = bot_name
 	bot.team_id = bot_team
-	
-	# 1. On configure sa position AVANT de l'ajouter à la scène (c'est plus propre)
 	bot.global_transform = spawn_transform
-	
-	# 2. FIX : On demande à Godot de l'ajouter en différé (dès que l'arbre est déverrouillé)
 	get_parent().call_deferred("add_child", bot)
-	
-	# 3. Enregistrement immédiat dans le système de score et de signaux
 	_register_combatant(bot)
 
 func _register_combatant(combatant: Node) -> void:
@@ -160,9 +163,12 @@ func _update_score_display() -> void:
 			txt += p + " : " + str(individual_scores[p]) + " kills\n"
 		score_label.text = txt
 		
-	elif current_mode == GameMode.TEAM_DEATHMATCH:
-		score_label.text = "--- SCORES D'ÉQUIPE (Match à Mort) ---\nAlliés (Équipe 1) : " + str(team_scores[1]) + " / " + str(score_to_win) + "\nEnnemis (Équipe 2) : " + str(team_scores[2]) + " / " + str(score_to_win)
+	# FIX : On affiche la même interface d'équipes pour TDM et Domination
+	elif current_mode == GameMode.TEAM_DEATHMATCH or current_mode == GameMode.DOMINATION:
+		var mode_name = "Match à Mort" if current_mode == GameMode.TEAM_DEATHMATCH else "Domination"
+		score_label.text = "--- SCORES (" + mode_name + ") ---\nAlliés (Équipe 1) : " + str(team_scores[1]) + " / " + str(score_to_win) + "\nEnnemis (Équipe 2) : " + str(team_scores[2]) + " / " + str(score_to_win)
 
 func _end_match(winner_text: String) -> void:
 	score_label.text = "!!! FIN DE LA PARTIE !!!\n" + winner_text
 	score_label.add_theme_color_override("font_color", Color(0, 1, 0))
+	# Optionnel : Mettre le jeu en pause via get_tree().paused = true

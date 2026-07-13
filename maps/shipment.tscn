@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://cc0dnlyqq3k7k" path="res://enemy.tscn" id="4_bmbx6"]
 [ext_resource type="PackedScene" uid="uid://5omdwimoh0gn" path="res://SpawnPoint.tscn" id="5_dfkbg"]
 [ext_resource type="PackedScene" uid="uid://bym3e0yky2sab" path="res://match_manager.tscn" id="6_24kdc"]
+[ext_resource type="PackedScene" uid="uid://tn2jbk4g8ta3" path="res://capture_zone.tscn" id="7_x771x"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_a0orm"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -31,6 +32,10 @@ material = ExtResource("1_tf6g5")
 size = Vector2(75, 75)
 
 [node name="Shipment" type="Node3D" unique_id=1835402607]
+
+[node name="MatchManager" parent="." unique_id=1181911137 instance=ExtResource("6_24kdc")]
+current_mode = 2
+enemy_scene = ExtResource("4_bmbx6")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=441711008]
 environment = SubResource("Environment_dfkbg")
@@ -355,6 +360,13 @@ type = 1
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.843513, 0.13454513, 12.538928)
 type = 1
 
-[node name="MatchManager" parent="." unique_id=1181911137 instance=ExtResource("6_24kdc")]
-current_mode = 1
-enemy_scene = ExtResource("4_bmbx6")
+[node name="CaptureZone" parent="." unique_id=1844423137 instance=ExtResource("7_x771x")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05934906, 0.084545135, -0.03654477)
+zone_name = "B"
+
+[node name="CaptureZone2" parent="." unique_id=1788289957 instance=ExtResource("7_x771x")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.342789, 0.084545135, 11.624462)
+
+[node name="CaptureZone3" parent="." unique_id=180847731 instance=ExtResource("7_x771x")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.13387, 0.084545135, -12.140289)
+zone_name = "C"
