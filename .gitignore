@@ -16,8 +16,8 @@ build/
 builds/
 
 # Fichiers générés par le système d'exploitation
-.DS_Store
-.DS_Store?
+addons/
+demo/
 ._*
 .Trashes
 ehthumbs.db
