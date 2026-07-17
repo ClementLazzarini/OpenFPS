@@ -8,6 +8,9 @@ enum GameMode { FREE_FOR_ALL, TEAM_DEATHMATCH, DOMINATION }
 @export var score_to_win: int = 15 # (Tu pourras monter ça à 100 pour la Domination !)
 @export var enemy_scene: PackedScene 
 
+@export var end_screen_scene: PackedScene
+var ui_canvas: CanvasLayer
+
 # Dictionnaires pour les scores
 var individual_scores: Dictionary = {}
 var team_scores: Dictionary = {1: 0, 2: 0}
@@ -125,7 +128,7 @@ func _on_combatant_killed(victim: Node, killer: Node) -> void:
 		GameMode.FREE_FOR_ALL:
 			individual_scores[killer.name] += 1
 			if individual_scores[killer.name] >= score_to_win:
-				_end_match(killer.name + " GANHE LA MÊLÉE GÉNÉRALE !")
+				_end_match(killer.name + " GAGNE LA MÊLÉE GÉNÉRALE !")
 				
 		GameMode.TEAM_DEATHMATCH:
 			if killer.get("team_id") != null:
@@ -141,6 +144,8 @@ func _on_combatant_killed(victim: Node, killer: Node) -> void:
 func _create_match_ui() -> void:
 	var canvas = CanvasLayer.new()
 	add_child(canvas)
+	ui_canvas = CanvasLayer.new()
+	add_child(ui_canvas)
 	
 	score_label = Label.new()
 	score_label.position = Vector2(20, 20)
@@ -169,6 +174,25 @@ func _update_score_display() -> void:
 		score_label.text = "--- SCORES (" + mode_name + ") ---\nAlliés (Équipe 1) : " + str(team_scores[1]) + " / " + str(score_to_win) + "\nEnnemis (Équipe 2) : " + str(team_scores[2]) + " / " + str(score_to_win)
 
 func _end_match(winner_text: String) -> void:
-	score_label.text = "!!! FIN DE LA PARTIE !!!\n" + winner_text
-	score_label.add_theme_color_override("font_color", Color(0, 1, 0))
-	# Optionnel : Mettre le jeu en pause via get_tree().paused = true
+	# 1. On fige l'action de tous les bots et joueurs
+	get_tree().paused = true
+
+	# 2. On cache l'interface de combat (Optionnel mais plus propre)
+	score_label.hide()
+	killfeed_label.hide()
+
+	# 3. On prépare le texte des scores
+	var final_scores = ""
+	if current_mode == GameMode.FREE_FOR_ALL:
+		for p in individual_scores:
+			final_scores += p + " : " + str(individual_scores[p]) + " kills\n"
+	else:
+		final_scores = "Alliés (Équipe 1) : " + str(team_scores[1]) + "\nEnnemis (Équipe 2) : " + str(team_scores[2])
+
+	# 4. On fait apparaître notre bel écran de fin
+	if end_screen_scene:
+		var end_screen = end_screen_scene.instantiate()
+		ui_canvas.add_child(end_screen)
+		end_screen.setup_screen(winner_text, final_scores)
+	else:
+		print("ERREUR : end_screen_scene n'est pas assignée dans le MatchManager !")

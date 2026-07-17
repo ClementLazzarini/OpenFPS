@@ -3,6 +3,7 @@
 [ext_resource type="Material" uid="uid://ruum1ewj52xi" path="res://textures/Textures_Asphalte/Mat_Asphalte.tres" id="1_tf6g5"]
 [ext_resource type="PackedScene" uid="uid://dnbuwxwojn8ld" path="res://models/maps/Container_Red_Close.tscn" id="2_a0orm"]
 [ext_resource type="PackedScene" uid="uid://c3fnc6qvwf6i0" path="res://player.tscn" id="3_bmbx6"]
+[ext_resource type="PackedScene" uid="uid://cgbvhwh08cvn4" path="res://end_screen.tscn" id="3_g8wi1"]
 [ext_resource type="PackedScene" uid="uid://cc0dnlyqq3k7k" path="res://enemy.tscn" id="4_bmbx6"]
 [ext_resource type="PackedScene" uid="uid://5omdwimoh0gn" path="res://SpawnPoint.tscn" id="5_dfkbg"]
 [ext_resource type="PackedScene" uid="uid://bym3e0yky2sab" path="res://match_manager.tscn" id="6_24kdc"]
@@ -36,6 +37,7 @@ size = Vector2(75, 75)
 [node name="MatchManager" parent="." unique_id=1181911137 instance=ExtResource("6_24kdc")]
 current_mode = 2
 enemy_scene = ExtResource("4_bmbx6")
+end_screen_scene = ExtResource("3_g8wi1")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=441711008]
 environment = SubResource("Environment_dfkbg")
