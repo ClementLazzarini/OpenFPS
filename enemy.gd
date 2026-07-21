@@ -18,6 +18,11 @@ var wait_timer: float = 0.0
 @export var gravity: float = 9.8
 @export var rotation_speed: float = 8.0
 
+@export_category("Facteur Humain")
+@export var reaction_time: float = 0.3 # Temps avant de tirer quand il voit un ennemi
+@export var accuracy: float = 0.8 # 80% de chance de toucher
+var reaction_timer: float = 0.0
+
 @export_category("Vision & Combat")
 @export var fov_angle: float = 120.0
 @export var view_distance: float = 30.0
@@ -96,6 +101,8 @@ func _physics_process(delta: float) -> void:
 				threshold = attack_range + 2.0 
 				
 			if distance_to_target <= threshold:
+				if current_state != State.ATTACK:
+					reaction_timer = reaction_time
 				current_state = State.ATTACK
 			else:
 				current_state = State.CHASE
@@ -180,14 +187,25 @@ func _handle_attack(delta: float) -> void:
 	dir_to_target.y = 0
 	_smooth_look_at(dir_to_target.normalized(), delta)
 
+	# On décrémente le temps de réaction humain avant de tirer
+	if reaction_timer > 0:
+		reaction_timer -= delta
+		return # Il vise, mais ne tire pas encore !
+
 	if fire_timer <= 0.0:
 		_shoot()
 
 func _shoot() -> void:
 	fire_timer = fire_rate
 	if current_target and is_instance_valid(current_target):
-		if current_target.has_method("take_damage"):
-			current_target.take_damage(damage, self)
+		# TODO : Jouer l'animation de tir et le son ici
+
+		# Calcul de la précision (Miss chance)
+		if randf() <= accuracy:
+			if current_target.has_method("take_damage"):
+				current_target.take_damage(damage, self)
+		else:
+			print(name, " a raté son tir !") # Tu pourras faire spawner un impact de balle à côté du joue
 
 # --- VISION TACTIQUE ---
 func _has_line_of_sight(target: Node3D) -> bool:
@@ -237,7 +255,6 @@ func _find_closest_valid_target() -> CharacterBody3D:
 # --- SYSTEME DE DEGATS ---
 func take_damage(amount: int, attacker: Node3D = null) -> void:
 	if health <= 0: return 
-
 	health -= amount
 
 	if current_state == State.PATROL or current_state == State.SEARCH:
@@ -248,7 +265,7 @@ func take_damage(amount: int, attacker: Node3D = null) -> void:
 			wait_timer = wait_time
 
 	if health <= 0:
-		# On crie au MatchManager qu'on vient de mourir et par qui
+		# TODO : Déclencher le ragdoll ou l'animation de mort
 		emit_signal("killed", self, attacker)
 		_respawn()
 
@@ -306,3 +323,13 @@ func _setup_team_indicator() -> void:
 		else:
 			team_indicator.modulate = Color(1.0, 0.0, 0.0) # Rouge vif (Ennemi)
 			
+func _update_animations() -> void:
+	# On calcule la vitesse de déplacement actuelle sur un plan 2D (sans la gravité)
+	var horizontal_velocity = Vector2(velocity.x, velocity.z)
+	var current_speed = horizontal_velocity.length()
+
+	# On obtient un pourcentage entre 0.0 et 1.0 par rapport à la vitesse max
+	var speed_percent = current_speed / speed
+
+	# TODO quand tu auras un AnimationTree :
+	# animation_tree.set("parameters/BlendSpace1D/blend_position", speed_percent)

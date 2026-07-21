@@ -9,7 +9,7 @@ signal killed(victim_node, killer_node)
 @export var friction: float = 15.0
 @export var air_control: float = 3.0
 @export var jump_velocity: float = 10
-@export var gravity: float = 36
+@export var gravity: float = 42
 
 @export_category("Caméra & Vue")
 @export var mouse_sensitivity: float = 0.002
