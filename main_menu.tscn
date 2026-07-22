@@ -1,6 +1,10 @@
 [gd_scene format=3 uid="uid://ublvf3ljnme0"]
 
 [ext_resource type="Script" uid="uid://ds4wt71hkc0mo" path="res://main_menu.gd" id="1_06t4h"]
+[ext_resource type="Texture2D" uid="uid://wrtfi4t8ov3r" path="res://assets/UI/MainMenuImg.png" id="2_7vrkn"]
+[ext_resource type="StyleBox" uid="uid://bifl0opfj8bpg" path="res://assets/UI/hoverUI.tres" id="3_fu7sn"]
+
+[sub_resource type="Gradient" id="Gradient_7vrkn"]
 
 [node name="MainMenu" type="Control" unique_id=1317921141]
 layout_mode = 3
@@ -11,26 +15,67 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_06t4h")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=330301613]
+[node name="Img" type="TextureRect" parent="." unique_id=2004663921]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -20.0
-offset_top = -20.0
-offset_right = 20.0
-offset_bottom = 20.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+texture = ExtResource("2_7vrkn")
+expand_mode = 2
 
-[node name="MapSelector" type="OptionButton" parent="VBoxContainer" unique_id=1289920191]
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1965473398]
+position = Vector2(600, 800)
+amount = 200
+lifetime = 4.0
+emission_shape = 3
+emission_rect_extents = Vector2(600, 1)
+gravity = Vector2(-15, -50)
+scale_amount_max = 2.0
+color_ramp = SubResource("Gradient_7vrkn")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=330301613]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -39.5
+offset_right = -243.0
+offset_bottom = 39.5
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="MapSelector" type="HBoxContainer" parent="VBoxContainer" unique_id=655760430]
 layout_mode = 2
 
-[node name="ModeSelector" type="OptionButton" parent="VBoxContainer" unique_id=1650147621]
+[node name="MapSelectorLabel" type="Label" parent="VBoxContainer/MapSelector" unique_id=971226533]
+custom_minimum_size = Vector2(60, 0)
 layout_mode = 2
+text = "Map : "
+
+[node name="MapSelector" type="OptionButton" parent="VBoxContainer/MapSelector" unique_id=1289920191]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/hover = ExtResource("3_fu7sn")
+
+[node name="ModeSelector" type="HBoxContainer" parent="VBoxContainer" unique_id=429374348]
+layout_mode = 2
+
+[node name="ModeSelectorLabel" type="Label" parent="VBoxContainer/ModeSelector" unique_id=1365590782]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+text = "Mode : "
+
+[node name="ModeSelector" type="OptionButton" parent="VBoxContainer/ModeSelector" unique_id=1650147621]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/hover = ExtResource("3_fu7sn")
 
 [node name="PlayButton" type="Button" parent="VBoxContainer" unique_id=1496470462]
 layout_mode = 2
-text = "JOUER"
+theme_override_styles/hover = ExtResource("3_fu7sn")
+text = "Play"

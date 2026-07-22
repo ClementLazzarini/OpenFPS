@@ -1,7 +1,7 @@
 extends Control
 
-@onready var map_selector: OptionButton = $VBoxContainer/MapSelector
-@onready var mode_selector: OptionButton = $VBoxContainer/ModeSelector
+@onready var map_selector: OptionButton = $VBoxContainer/MapSelector/MapSelector
+@onready var mode_selector: OptionButton = $VBoxContainer/ModeSelector/ModeSelector
 @onready var play_button: Button = $VBoxContainer/PlayButton
 
 func _ready() -> void:
