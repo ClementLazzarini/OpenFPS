@@ -54,6 +54,10 @@ var reload_timer: float = 0.0
 @onready var weapon: Node3D = $Head/Camera3D/Weapon
 @onready var shoot_sound: AudioStreamPlayer = $Head/Camera3D/ShootSound 
 @onready var reload_sound: AudioStreamPlayer = $Head/Camera3D/ReloadSound
+@onready var hitmarker_ui = $HUD/Control/HitmarkerUI 
+@onready var hit_sound_player = $HitSoundPlayer
+
+var hitmarker_tween: Tween
 
 # Position et rotation initiales de l'arme (pour la ramener à sa place)
 var weapon_default_pos: Vector3
@@ -231,7 +235,7 @@ func _shoot() -> void:
 	current_ammo -= 1
 	_update_ammo_display()
 
-	# 2. Jouer le son
+	# 2. Jouer le son du tir
 	if shoot_sound.stream:
 		shoot_sound.play()
 		
@@ -245,13 +249,20 @@ func _shoot() -> void:
 		var target = weapon_raycast.get_collider()
 		var hit_point = weapon_raycast.get_collision_point()
 		var hit_normal = weapon_raycast.get_collision_normal()
+
 		# --- DÉTECTION DE LA CIBLE ---
 		var is_enemy: bool = target.is_in_group("enemy")
-		# --- APPEL DE L'EFFET ---
+
+		# --- APPEL DE L'EFFET (Particules) ---
 		_create_impact_particles(hit_point, hit_normal, is_enemy)
-		
+
+		# --- INFLIGER LES DÉGÂTS ET HITMARKER ---
 		if target.has_method("take_damage"):
-			target.take_damage(20, self)
+			# On stocke le résultat pour savoir si on vient de le tuer
+			var is_kill = target.take_damage(20, self) 
+
+			# On déclenche le hitmarker (visuel + son "tic")
+			play_hitmarker(is_kill)
 
 func _start_reload() -> void:
 	is_reloading = true
@@ -346,3 +357,27 @@ func _respawn() -> void:
 		# Sécurité si tu as oublié de configurer le groupe sur ta carte
 		global_position = Vector3(0, 2, 0)
 		print("ATTENTION : Aucun point dans le groupe 'player_spawns'. Retour au centre de la carte.")
+
+
+func play_hitmarker(is_kill: bool = false) -> void:
+	# 1. On joue le son
+	hit_sound_player.play()
+
+	# 2. On choisit la couleur : Rouge si c'est un kill, Blanc si c'est juste une touche
+	if is_kill:
+		hitmarker_ui.modulate = Color(1.0, 0.0, 0.0) # Rouge
+	else:
+		hitmarker_ui.modulate = Color(1.0, 1.0, 1.0) # Blanc
+		
+	hitmarker_ui.show()
+
+	# 3. L'animation fluide (Fade out)
+	if hitmarker_tween:
+		hitmarker_tween.kill() # On stoppe l'ancienne animation si on tire très vite
+		
+	hitmarker_tween = create_tween()
+	# On fait passer l'alpha (transparence) de 1.0 à 0.0 en 0.2 secondes
+	hitmarker_tween.tween_property(hitmarker_ui, "modulate:a", 0.0, 0.2).from(1.0)
+
+	# On cache complètement le nœud à la fin de l'animation
+	hitmarker_tween.tween_callback(hitmarker_ui.hide)
