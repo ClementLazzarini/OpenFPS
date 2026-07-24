@@ -253,8 +253,8 @@ func _find_closest_valid_target() -> CharacterBody3D:
 	return closest_target
 
 # --- SYSTEME DE DEGATS ---
-func take_damage(amount: int, attacker: Node3D = null) -> void:
-	if health <= 0: return 
+func take_damage(amount: int, attacker: Node3D = null) -> bool:
+	if health <= 0: return false
 	health -= amount
 
 	if current_state == State.PATROL or current_state == State.SEARCH:
@@ -268,6 +268,8 @@ func take_damage(amount: int, attacker: Node3D = null) -> void:
 		# TODO : Déclencher le ragdoll ou l'animation de mort
 		emit_signal("killed", self, attacker)
 		_respawn()
+		return true
+	return false
 
 # --- SYSTEME DE RESPAWN ---
 func _respawn() -> void:
