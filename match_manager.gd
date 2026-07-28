@@ -62,6 +62,10 @@ func _tick_domination_scores() -> void:
 	_update_score_display()
 
 func _setup_game_mode() -> void:
+	if current_mode != GameMode.DOMINATION:
+		var zones = get_tree().get_nodes_in_group("capture_zones")
+		for zone in zones:
+			zone.queue_free()
 	var spawn_points = get_tree().get_nodes_in_group("player_spawns") + get_tree().get_nodes_in_group("enemy_spawns")
 	if spawn_points.is_empty():
 		print("ATTENTION : Aucun SpawnPoint trouvé sur la map !")

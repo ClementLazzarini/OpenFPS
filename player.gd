@@ -56,7 +56,8 @@ var reload_timer: float = 0.0
 @onready var reload_sound: AudioStreamPlayer = $Head/Camera3D/ReloadSound
 @onready var hitmarker_ui = $HUD/Control/HitmarkerUI 
 @onready var hit_sound_player = $HitSoundPlayer
-
+@onready var damage_overlay: ColorRect = $HUD/Control/DamageOverlay
+var damage_tween: Tween
 var hitmarker_tween: Tween
 
 # Position et rotation initiales de l'arme (pour la ramener à sa place)
@@ -284,9 +285,21 @@ func take_damage(amount: int, attacker: Node3D = null) -> void:
 	health -= amount
 	health_bar.value = health
 
+	# --- APPEL DE L'EFFET VISUEL ---
+	_play_damage_effect()
+
 	if health <= 0:
 		emit_signal("killed", self, attacker)
 		_respawn()
+
+func _play_damage_effect() -> void:
+	if damage_tween:
+		damage_tween.kill()
+		
+	damage_tween = create_tween()
+	damage_overlay.color.a = 0.35 
+
+	damage_tween.tween_property(damage_overlay, "color:a", 0.0, 0.4)
 
 func _create_impact_particles(hit_point: Vector3, hit_normal: Vector3, is_enemy: bool = false) -> void:
 	var particles := GPUParticles3D.new()
