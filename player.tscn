@@ -1,10 +1,11 @@
 [gd_scene format=3 uid="uid://c3fnc6qvwf6i0"]
 
 [ext_resource type="Script" uid="uid://clnroscgrk382" path="res://player.gd" id="1_4flbx"]
-[ext_resource type="AudioStream" uid="uid://ch40hj4hfy538" path="res://assets/audio/9mmshoot.wav" id="2_i3pqv"]
+[ext_resource type="AudioStream" uid="uid://bln5kva85ycuj" path="res://assets/audio/9mmshoot.wav" id="2_i3pqv"]
 [ext_resource type="PackedScene" uid="uid://dt0y7lc4g5www" path="res://9_mm.tscn" id="2_onrkg"]
 [ext_resource type="Script" uid="uid://bg8rmwpwyjpxe" path="res://fps_label.gd" id="4_hqtel"]
 [ext_resource type="AudioStream" uid="uid://dd7a4nh0370dc" path="res://assets/audio/Reload.wav" id="4_sweqy"]
+[ext_resource type="PackedScene" uid="uid://c8p0wyppj7n84" path="res://knife.tscn" id="5_dw050"]
 [ext_resource type="Script" uid="uid://ivi4yylg2tut" path="res://minimap_camera.gd" id="6_2hs0m"]
 [ext_resource type="AudioStream" uid="uid://bondtkqc7sd0y" path="res://assets/audio/tic.wav" id="7_1jxqw"]
 
@@ -37,11 +38,16 @@ stream = ExtResource("2_i3pqv")
 [node name="WeaponRayCast" type="RayCast3D" parent="Head/Camera3D" unique_id=1468577592]
 target_position = Vector3(0, 0, -50)
 
-[node name="Weapon" parent="Head/Camera3D" unique_id=566221120 instance=ExtResource("2_onrkg")]
-transform = Transform3D(0.04984048, 0, 0.0039908094, 0, 0.05, 0, -0.0039908094, 0, 0.04984048, 0.6497926, -0.57015073, -1.1124429)
-
 [node name="ReloadSound" type="AudioStreamPlayer" parent="Head/Camera3D" unique_id=1496572424]
 stream = ExtResource("4_sweqy")
+
+[node name="WeaponManager" type="Node3D" parent="Head/Camera3D" unique_id=1377778431]
+
+[node name="Weapon" parent="Head/Camera3D/WeaponManager" unique_id=566221120 instance=ExtResource("2_onrkg")]
+transform = Transform3D(0.04984048, 0, 0.0039908094, 0, 0.05, 0, -0.0039908094, 0, 0.04984048, 0.6497926, -0.57015073, -1.1124429)
+
+[node name="Knife" parent="Head/Camera3D/WeaponManager" unique_id=1297837707 instance=ExtResource("5_dw050")]
+transform = Transform3D(-0.015636623, -2.2106044e-05, 0.047492053, 7.06867e-05, -0.049999945, -3.5509356e-14, 0.047491997, 6.7141125e-05, 0.015636642, -0.4152043, -0.27562833, -1.1448754)
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1152552074]
 

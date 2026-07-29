@@ -37,21 +37,27 @@ var team_id: int = 0
 @export_category("Head Bobbing")
 @export var bob_frequency: float = 2.0
 @export var bob_amplitude: float = 0.08
-var t_bob: float = 0.0 # chronomètre pour calculer le balancement
+var t_bob: float = 0.0
 
 @export_category("Arme & Recul")
-@export var recoil_rotation_x: float = 0.1 # L'arme se lève
-@export var recoil_position_z: float = 0.1 # L'arme recule vers le joueur
-@export var recoil_recovery_speed: float = 10.0 # Vitesse de retour à la normale
-@export var max_ammo: int = 15 # Taille du chargeur du 9mm
-@export var reload_time: float = 1.5 # Durée du rechargement en secondes
+@export var recoil_rotation_x: float = 0.1
+@export var recoil_position_z: float = 0.1
+@export var recoil_recovery_speed: float = 10.0
+@export var max_ammo: int = 15
+@export var reload_time: float = 1.5
 
 # Variables d'état des munitions
 var current_ammo: int = max_ammo
 var is_reloading: bool = false
 var reload_timer: float = 0.0
 
-@onready var weapon: Node3D = $Head/Camera3D/Weapon
+@export_category("Gestion des Armes")
+@onready var weapon_manager: Node3D = $Head/Camera3D/WeaponManager
+var weapons: Array[Node] = []
+var active_weapon: Node3D
+var current_weapon_index: int = 0
+
+
 @onready var shoot_sound: AudioStreamPlayer = $Head/Camera3D/ShootSound 
 @onready var reload_sound: AudioStreamPlayer = $Head/Camera3D/ReloadSound
 @onready var hitmarker_ui = $HUD/Control/HitmarkerUI 
@@ -80,8 +86,10 @@ func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	add_to_group("player")
 	add_to_group("combatants")
-	weapon_default_pos = weapon.position
-	weapon_default_rot = weapon.rotation
+	weapons = weapon_manager.get_children()
+	equip_weapon(0)
+	weapon_default_pos = active_weapon.position
+	weapon_default_rot = active_weapon.rotation
 	stand_head_y = head.position.y
 	health_bar.max_value = 100
 	health_bar.value = health
@@ -109,6 +117,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 		else:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+			
+	# CHANGEMENT D'ARME
+	if event.is_action_pressed("weapon_1"):
+		equip_weapon(0)
+	if event.is_action_pressed("weapon_2"):
+		equip_weapon(1)
 
 func _physics_process(delta: float) -> void:
 	# --- GRAVITÉ ---
@@ -142,16 +156,18 @@ func _physics_process(delta: float) -> void:
 			print("Arme rechargée !")
 
 	# Lancement manuel du rechargement
-	if Input.is_action_just_pressed("reload") and current_ammo < max_ammo and not is_reloading:
+	if Input.is_action_just_pressed("reload") and not active_weapon.is_melee and current_ammo < active_weapon.max_ammo and not is_reloading:
 		_start_reload()
 
-	# --- SYSTÈME DE TIR (9mm Semi-Auto) ---
+	# SYSTÈME DE TIR / ATTAQUE
 	if Input.is_action_just_pressed("shoot") and not is_reloading:
-		if current_ammo > 0:
-			_shoot()
+		if active_weapon.is_melee:
+			_melee_attack()
 		else:
-			# Essayer de tirer à vide déclenche un rechargement automatique
-			_start_reload()
+			if current_ammo > 0:
+				_shoot()
+			else:
+				_start_reload()
 
 	# --- VECTEURS DE DIRECTION ---
 	# 1. Récupérer le vecteur directionnel basé sur les touches pressées
@@ -219,8 +235,8 @@ func _physics_process(delta: float) -> void:
 		camera.position = camera.position.lerp(Vector3.ZERO, delta * 5.0)
 
 	# --- RÉCUPÉRATION DU RECUL ---
-	weapon.position = weapon.position.lerp(weapon_default_pos, delta * recoil_recovery_speed)
-	weapon.rotation = weapon.rotation.lerp(weapon_default_rot, delta * recoil_recovery_speed)
+	active_weapon.position = active_weapon.position.lerp(weapon_default_pos, delta * recoil_recovery_speed)
+	active_weapon.rotation = active_weapon.rotation.lerp(weapon_default_rot, delta * recoil_recovery_speed)
 
 	# --- EXÉCUTION MOTEUR PHYSIQUE ---
 	move_and_slide()
@@ -241,11 +257,14 @@ func _shoot() -> void:
 		shoot_sound.play()
 		
 	# 3. Appliquer le recul visuel
-	weapon.position.z += recoil_position_z
-	weapon.rotation.x += recoil_rotation_x
+	active_weapon.position.z += recoil_position_z
+	active_weapon.rotation.x += recoil_rotation_x
 
 	# 4. Logique Hitscan
+	# FIX : On adapte la longueur du RayCast à la portée de l'arme actuelle !
+	weapon_raycast.target_position = Vector3(0, 0, -active_weapon.range) 
 	weapon_raycast.force_raycast_update()
+
 	if weapon_raycast.is_colliding():
 		var target = weapon_raycast.get_collider()
 		var hit_point = weapon_raycast.get_collision_point()
@@ -259,8 +278,8 @@ func _shoot() -> void:
 
 		# --- INFLIGER LES DÉGÂTS ET HITMARKER ---
 		if target.has_method("take_damage"):
-			# On stocke le résultat pour savoir si on vient de le tuer
-			var is_kill = target.take_damage(20, self) 
+			# FIX : On utilise les dégâts de l'arme, plus le "20" codé en dur
+			var is_kill = target.take_damage(active_weapon.damage, self) 
 
 			# On déclenche le hitmarker (visuel + son "tic")
 			play_hitmarker(is_kill)
@@ -274,7 +293,7 @@ func _start_reload() -> void:
 		reload_sound.play()
 		
 	# Petite animation visuelle basique : on baisse l'arme
-	weapon.rotation.x = deg_to_rad(-45)
+	active_weapon.rotation.x = deg_to_rad(-45)
 
 func _update_ammo_display() -> void:
 	ammo_label.text = str(current_ammo) + " / " + str(max_ammo)
@@ -345,7 +364,6 @@ func _create_impact_particles(hit_point: Vector3, hit_normal: Vector3, is_enemy:
 	await get_tree().create_timer(1.0).timeout
 	particles.queue_free()
 
-
 func _respawn() -> void:
 	print("Le joueur est mort ! Recherche d'un point de réapparition...")
 
@@ -371,7 +389,6 @@ func _respawn() -> void:
 		global_position = Vector3(0, 2, 0)
 		print("ATTENTION : Aucun point dans le groupe 'player_spawns'. Retour au centre de la carte.")
 
-
 func play_hitmarker(is_kill: bool = false) -> void:
 	# 1. On joue le son
 	hit_sound_player.play()
@@ -394,3 +411,51 @@ func play_hitmarker(is_kill: bool = false) -> void:
 
 	# On cache complètement le nœud à la fin de l'animation
 	hitmarker_tween.tween_callback(hitmarker_ui.hide)
+
+func equip_weapon(index: int) -> void:
+	if index < 0 or index >= weapons.size(): 
+		return # Sécurité si l'arme n'existe pas
+
+	# On met à jour l'index
+	current_weapon_index = index
+
+	# On boucle sur toutes les armes pour n'afficher que la bonne
+	for i in range(weapons.size()):
+		if i == index:
+			weapons[i].show()
+			active_weapon = weapons[i]
+		else:
+			weapons[i].hide()
+
+	# Si tu as des stats spécifiques plus tard (dégâts, munitions max), 
+	# c'est ici que tu mettras à jour tes variables globales depuis l'arme active.
+
+	# Pour le recul, on met à jour les positions de base sur la nouvelle arme
+	weapon_default_pos = active_weapon.position
+	weapon_default_rot = active_weapon.rotation
+	
+	# --- ADAPTATION DE L'UI ---
+	if active_weapon.is_melee:
+		ammo_label.hide() # On cache les balles pour le couteau
+	else:
+		current_ammo = active_weapon.max_ammo # Optionnel : recharge en changeant d'arme
+		ammo_label.show()
+		_update_ammo_display()
+
+func _melee_attack() -> void:
+	# 1. Animation basique de coup de couteau (rotation vers l'avant)
+	var attack_tween = create_tween()
+	attack_tween.tween_property(active_weapon, "rotation:x", deg_to_rad(-45), 0.1)
+	attack_tween.tween_property(active_weapon, "rotation:x", weapon_default_rot.x, 0.2)
+
+	# 2. Jouer un son de "swoosh" si tu en as un
+
+	# 3. Logique Hitscan spécifique au couteau
+	weapon_raycast.target_position = Vector3(0, 0, -active_weapon.range) # Portée courte
+	weapon_raycast.force_raycast_update()
+
+	if weapon_raycast.is_colliding():
+		var target = weapon_raycast.get_collider()
+		if target.is_in_group("enemy") and target.has_method("take_damage"):
+			var is_kill = target.take_damage(active_weapon.damage, self)
+			play_hitmarker(is_kill)
