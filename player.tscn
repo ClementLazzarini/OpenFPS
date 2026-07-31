@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://c8p0wyppj7n84" path="res://knife.tscn" id="5_dw050"]
 [ext_resource type="Script" uid="uid://ivi4yylg2tut" path="res://minimap_camera.gd" id="6_2hs0m"]
 [ext_resource type="AudioStream" uid="uid://bondtkqc7sd0y" path="res://assets/audio/tic.wav" id="7_1jxqw"]
+[ext_resource type="Texture2D" uid="uid://bpou8gfkepys3" path="res://assets/UI/ammo.png" id="8_b26j0"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_onrkg"]
 
@@ -98,6 +99,7 @@ offset_left = -40.0
 offset_top = -23.0
 grow_horizontal = 0
 grow_vertical = 0
+text = "15/15"
 
 [node name="FPS_Label" type="Label" parent="HUD/Control" unique_id=938206517]
 layout_mode = 1
@@ -159,6 +161,11 @@ transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 1
 projection = 1
 size = 20.0
 script = ExtResource("6_2hs0m")
+
+[node name="Ammo" type="Sprite2D" parent="HUD/Control" unique_id=517118144]
+position = Vector2(1128, 786)
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("8_b26j0")
 
 [node name="HitSoundPlayer" type="AudioStreamPlayer" parent="." unique_id=82964890]
 stream = ExtResource("7_1jxqw")
